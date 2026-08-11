@@ -276,7 +276,7 @@ with col_left:
             # Lấy Key bí mật từ Server Secrets
             secret_api_key = st.secrets.get("GEMINI_API_KEY", "")
             
-            # Ô nhập để trống hoàn toàn, chỉ dùng khi nhân viên muốn tự nhập Key riêng
+            # Ô nhập để trống, dùng Key bí mật ngầm định ở backend
             user_api_key = st.text_input(
                 "Gemini API Key (Tùy chọn):", 
                 type="password", 
@@ -284,13 +284,22 @@ with col_left:
                 help="Để trống để sử dụng API Key mặc định của công ty."
             )
             
-            # Ưu tiên Key người dùng nhập thủ công, nếu trống sẽ lấy Secret Key ở Backend
             api_key = user_api_key.strip() if user_api_key.strip() else secret_api_key
             
             if secret_api_key and not user_api_key:
                 st.caption("🟢 **Trạng thái:** Đã kết nối API Key hệ thống (Bảo mật).")
                 
             selected_model = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro"])
+        
+        with st.container(border=True):
+            st.markdown("**2. Phương án 1 (Mặc định)**")
+            lighting_opt1 = st.selectbox("Kịch bản ánh sáng (PA 1):", ["A1 - Ban ngày trong trẻo (Pure Daylight)", "A2 - Hoàng hôn ấm áp (Golden Hour)", "A3 - Chạng vạng lên đèn (Twilight 3000K)", "A4 - Hỗn hợp Nội thất (Hybrid Lighting)"], key="light1")
+            film_opt1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_options, index=1, key="film1")
+
+        with st.container(border=True):
+            st.markdown("**3. Phương án 2 (Bổ sung)**")
+            lighting_opt2 = st.selectbox("Kịch bản ánh sáng (PA 2):", ["A1 - Ban ngày trong trẻo (Pure Daylight)", "A2 - Hoàng hôn ấm áp (Golden Hour)", "A3 - Chạng vạng lên đèn (Twilight 3000K)", "A4 - Hỗn hợp Nội thất (Hybrid Lighting)"], index=1, key="light2")
+            film_opt2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_options, index=3, key="film2")
 
 # CỘT GIỮA
 with col_main:

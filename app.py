@@ -331,14 +331,20 @@ film_ext_options = [
     "B6 - Black Pro-Mist 1/4"
 ]
 
+# Kịch bản ánh sáng Nội thất đầy đủ 10 tùy chọn chuyên sâu
 lighting_int_options = [
-    "I1 - Nắng ban ngày qua cửa sổ (Direct Sunlight & Soft Shadow Slats)",
-    "I2 - Ban ngày dịu nhẹ tán xạ (Soft Ambient Daylight - Material Showcase)",
-    "I3 - Nắng hoàng hôn chiều tà (Golden Hour Low-Angle Window Light)",
-    "I4 - Đèn ấm cúng buổi tối (Cozy Warm Mood 2700K-3000K)",
-    "I5 - Đèn ray & LED hắt khe hiện đại (Modern Recessed LED & Track Spotlights - 4000K)",
-    "I6 - Buổi tối nghệ thuật & Sang trọng (Moody Cinematic Night & Accent Spotlights)"
+    "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
+    "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
+    "I3 - Luồng nắng xuyên khe (Volumetric God Rays)",
+    "I4 - Trời u uất / Ánh sáng tán xạ đều (Overcast Ambient Light - Material Focus)",
+    "I5 - Đèn ấm thư giãn (Warm Cozy Mood 2700K - 3000K)",
+    "I6 - Đèn trung tính hiện đại (Neutral Daylight 4000K - 4500K)",
+    "I7 - Đèn LED hắt khe & Ray âm trần (Modern Cove LED & Magnetic Track Lights)",
+    "I8 - Hỗn hợp Hoàng hôn & Đèn trong nhà (Golden Hour & Indoor Warm Lights)",
+    "I9 - Tối nghệ thuật & Đèn rọi điểm nhấn (Moody Dark & Accent Spotlights)",
+    "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)"
 ]
+
 film_int_options = [
     "F0 - None (Không sử dụng hiệu ứng màu)",
     "F1 - Tạp chí kiến trúc cao cấp (Architectural Digest - Clean & Bright)",
@@ -537,8 +543,8 @@ with tab_int:
 
             with st.container(border=True):
                 st.markdown("**2. Kịch bản Ánh sáng**")
-                light_int_1 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 1):", lighting_int_options, index=1, key="light_int1", disabled=is_disabled_int)
-                light_int_2 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 2):", lighting_int_options, index=3, key="light_int2", disabled=is_disabled_int)
+                light_int_1 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 1):", lighting_int_options, index=0, key="light_int1", disabled=is_disabled_int)
+                light_int_2 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 2):", lighting_int_options, index=4, key="light_int2", disabled=is_disabled_int)
 
             with st.container(border=True):
                 st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")

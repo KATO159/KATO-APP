@@ -7,7 +7,7 @@ import re, os, io, base64, html
 # Cấu hình trang Streamlit
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
-# Khởi tạo session_state
+# Khởi tạo session_state cho cả Ngoại thất và Nội thất
 for key in ["p1_res_ext", "p2_res_ext", "p1_res_int", "p2_res_int"]:
     if key not in st.session_state:
         st.session_state[key] = None
@@ -26,7 +26,7 @@ def clean_prompt_text(text: str) -> str:
     lines = [line.rstrip() for line in text.splitlines()]
     return "\n".join(lines).strip()
 
-# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64 (Tối ưu 100% tốc độ load ảnh)
+# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64
 @st.cache_data(show_spinner=False)
 def file_bytes_to_b64(file_bytes: bytes) -> str:
     img = Image.open(io.BytesIO(file_bytes))
@@ -39,7 +39,7 @@ def file_bytes_to_b64(file_bytes: bytes) -> str:
         img_conv.save(buffered, format="JPEG", quality=85)
     return base64.b64encode(buffered.getvalue()).decode()
 
-# CACHE HÀM TẠO ẢNH CHÚ CHÓ (Chạy 1 lần duy nhất)
+# CACHE HÀM TẠO ẢNH CHÚ CHÓ
 @st.cache_data(show_spinner=False)
 def get_transparent_dog_b64():
     target_file = None
@@ -184,7 +184,7 @@ def render_clickable_image(img_b64, caption, uploader_index):
     """
     components.html(html_code, height=165)
 
-# CSS KHÓA KHUNG VỪA MÀN HÌNH & XỬ LÝ CLICK TAB
+# CSS GIAO DIỆN HỆ THỐNG
 st.markdown("""
 <style>
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
@@ -332,11 +332,12 @@ film_ext_options = [
 ]
 
 lighting_int_options = [
-    "I1 - Ánh sáng ban ngày qua cửa sổ (Soft Natural Window Light)",
-    "I2 - Ánh sáng tự nhiên ban ngày tán xạ và đèn trang trí (Diffused Natural Daylight & Decorative Lighting)",
-    "I3 - Đèn ấm cúng buổi tối (Cozy Warm Accent 3000K)",
-    "I4 - Đèn ray & LED hắt hiện đại (Modern Recessed & Strip LED)",
-    "I5 - Hỗn hợp Nắng nhẹ & Đèn trang trí (Hybrid Daylight & Spotlights)"
+    "I1 - Nắng ban ngày qua cửa sổ (Direct Sunlight & Soft Shadow Slats)",
+    "I2 - Ban ngày dịu nhẹ tán xạ (Soft Ambient Daylight - Material Showcase)",
+    "I3 - Nắng hoàng hôn chiều tà (Golden Hour Low-Angle Window Light)",
+    "I4 - Đèn ấm cúng buổi tối (Cozy Warm Mood 2700K-3000K)",
+    "I5 - Đèn ray & LED hắt khe hiện đại (Modern Recessed LED & Track Spotlights - 4000K)",
+    "I6 - Buổi tối nghệ thuật & Sang trọng (Moody Cinematic Night & Accent Spotlights)"
 ]
 film_int_options = [
     "F0 - None (Không sử dụng hiệu ứng màu)",
@@ -445,13 +446,13 @@ with tab_ext:
                 selected_model_ext = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro"], key="model_ext")
 
             with st.container(border=True):
-                st.markdown("**2. Phương án 1 (Ngoại thất)**")
+                st.markdown("**2. Kịch bản Ánh sáng**")
                 light_ext_1 = st.selectbox("Kịch bản ánh sáng (PA 1):", lighting_ext_options, key="light_ext1", disabled=is_disabled_ext)
-                film_ext_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_ext_options, index=1, key="film_ext1", disabled=is_disabled_ext)
+                light_ext_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_ext_options, index=1, key="light_ext2", disabled=is_disabled_ext)
 
             with st.container(border=True):
-                st.markdown("**3. Phương án 2 (Ngoại thất)**")
-                light_ext_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_ext_options, index=1, key="light_ext2", disabled=is_disabled_ext)
+                st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
+                film_ext_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_ext_options, index=1, key="film_ext1", disabled=is_disabled_ext)
                 film_ext_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_ext_options, index=3, key="film_ext2", disabled=is_disabled_ext)
 
     with col_main_e:
@@ -535,13 +536,13 @@ with tab_int:
                 selected_model_int = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro"], key="model_int")
 
             with st.container(border=True):
-                st.markdown("**2. Phương án 1 (Nội thất)**")
-                light_int_1 = st.selectbox("Kịch bản ánh sáng (PA 1):", lighting_int_options, index=1, key="light_int1", disabled=is_disabled_int)
-                film_int_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_int_options, index=1, key="film_int1", disabled=is_disabled_int)
+                st.markdown("**2. Kịch bản Ánh sáng**")
+                light_int_1 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 1):", lighting_int_options, index=1, key="light_int1", disabled=is_disabled_int)
+                light_int_2 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 2):", lighting_int_options, index=3, key="light_int2", disabled=is_disabled_int)
 
             with st.container(border=True):
-                st.markdown("**3. Phương án 2 (Nội thất)**")
-                light_int_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_int_options, index=2, key="light_int2", disabled=is_disabled_int)
+                st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
+                film_int_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_int_options, index=1, key="film_int1", disabled=is_disabled_int)
                 film_int_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_int_options, index=2, key="film_int2", disabled=is_disabled_int)
 
     with col_main_i:

@@ -528,17 +528,17 @@ def process_gemini_analysis(
 
     Nhiệm vụ của bạn là tạo ra 2 PHƯƠNG ÁN PROMPT (Phương án 1 và Phương án 2) để so sánh kịch bản ánh sáng, bối cảnh môi trường và hiệu ứng màu sắc:
 
-    Quy tắc VÀNG về Bối cảnh Môi trường (Áp dụng cho cả 2 phương án):
-    - TỈ LỆ VÀNG 80/20: Chủ thể công trình/không gian nội thất chính từ **@ảnh phác thảo** BẮT BUỘC chiếm 80% thị giác ở trung tâm. Bối cảnh môi trường xung quanh chỉ đóng vai trò nền phụ chiếm tối đa 20% rìa khung hình.
-    - THOÁNG ĐÃNG & HÀI HOÀ TỰ NHIÊN: Cảnh quan hậu cảnh nhã nhặn, bố cục thoáng đãng, giữ nhịp điệu ánh sáng tự nhiên để TÔN CÔNG TRÌNH CHÍNH LÊN LÀM TÂM ĐIỂM, tránh các vật thể rác làm xao nhãng thị giác. BẮT BUỘC KHÔNG DÙNG các từ ngữ mang tính "tiệt trùng 3D" như "sạch sẽ", "hoàn hảo", "không chi tiết thừa".
-    - ĐỘ NÉT DỊU HỖ TRỢ: Bối cảnh cảnh quan hậu cảnh hoặc view qua kính có độ nét mềm dịu nhẹ (soft depth of field), hỗ trợ tôn lên đường nét kiến trúc chính.
+    QUY TẮC TỐI CAO VỀ TỰ ĐỘNG NHẬN DIỆN VÀ KHÓA GÓC CAMERA (Áp dụng cho CẢ 2 PHƯƠNG ÁN):
+    - TỰ ĐỘNG PHÂN TÍCH GÓC CAMERA: Hãy TỰ ĐỘNG soi kỹ **@ảnh phác thảo** để nhận diện chính xác góc chụp camera vật lý (ví dụ: Chụp chính diện toàn cảnh mặt tiền, Góc nhìn tầm mắt bên trong khuôn viên sân vườn/hiên, Góc chéo 3/4, Góc rộng không gian, Góc cận cảnh tả thực vật liệu...).
+    - KHÓA 100% BỐ CỤC KHUNG HÌNH: Bạn BẮT BUỘC miêu tả đúng góc máy, khoảng cách tiêu cự và tỉ lệ khung hình hệt như trong **@ảnh phác thảo**. Tuyệt đối KHÔNG tự ý phóng to (zoom in), thu nhỏ (zoom out), hay đẩy lùi vị trí camera làm mất đi ý đồ thiết kế ban đầu.
+    - CẢNH QUAN NỀN TỰ NHIÊN & NHÃ NHẶN: Bối cảnh xung quanh chỉ xuất hiện nhã nhặn ở vị trí dư thừa tự nhiên của khung hình phác thảo, bố cục thoáng đãng, hài hòa để TÔN CÔNG TRÌNH CHÍNH LÊN LÀM TÂM ĐIỂM, tránh các vật thể rác làm xao nhãng thị giác. BẮT BUỘC KHÔNG DÙNG các từ ngữ tiệt trùng 3D như "sạch sẽ", "hoàn hảo", "không chi tiết thừa".
 
     - PHƯƠNG ÁN 1 (AI ĐỀ XUẤT TỰ ĐỘNG THEO STYLE):
       + Bạn hãy TỰ ĐỘNG phân tích và nhận diện chính xác phong cách thiết kế của **@ảnh phác thảo** (ví dụ: Modern Luxury, Japandi, Indochine, Scandinavian, Minimalist, Industrial, Classic...).
-      + Dựa trên phong cách thiết kế đã nhận diện, hãy TỰ ĐỘNG ĐỀ XUẤT kịch bản ánh sáng, bối cảnh môi trường nhã nhặn tự nhiên và hiệu ứng nhiếp ảnh/màu sắc hoàn hảo nhất để làm tôn vinh trọn vẹn vẻ đẹp thực tế của không gian.
+      + Dựa trên phong cách thiết kế và góc camera gốc từ **@ảnh phác thảo**, hãy TỰ ĐỘNG ĐỀ XUẤT kịch bản ánh sáng, bối cảnh môi trường nhã nhặn tự nhiên và hiệu ứng nhiếp ảnh/màu sắc hoàn hảo nhất.
 
     - PHƯƠNG ÁN 2 (THỬ NGHIỆM THEO TÙY CHỌN NGƯỜI DÙNG):
-      + Bắt buộc áp dụng kịch bản ánh sáng theo phong cách {clean_light2}.
+      + Bắt buộc áp dụng kịch bản ánh sáng {clean_light2}.
       + Bắt buộc đặt trong bối cảnh môi trường {clean_context2} (thoáng đãng, nhã nhặn, tôn công trình chính).
       + Bắt buộc tích hợp thông số máy ảnh '16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V' {film_text2}.
 
@@ -547,7 +547,7 @@ def process_gemini_analysis(
     
     Quy tắc trình bày & cấu trúc Prompt:
     1. Cả 2 câu lệnh BẮT BUỘC bắt đầu bằng cụm từ chính xác: 'Ảnh chụp thực tế'.
-    2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc chụp, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Bối cảnh môi trường, Thông số nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần.
+    2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc camera, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Bối cảnh môi trường, Thông số nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần.
     3. Phân tích đầy đủ {detail_str}.
     4. BẮT BUỘC bổ sung đầy đủ thông số máy ảnh '16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V' vào phần nhiếp ảnh cuối mỗi phương án.
     5. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'C1', 'I1' làm tiêu đề.
@@ -621,8 +621,8 @@ with tab_ext:
       with st.container(border=True):
         st.markdown("**2. Kịch bản Ánh sáng (PA 2)**")
         st.caption(
-            "🤖 **Phương án 1:** AI tự phân tích Style đề xuất Ánh sáng, Bối"
-            " cảnh & Hiệu ứng."
+            "🤖 **Phương án 1:** AI tự động phân tích Style & Nhận diện chuẩn"
+            " Góc camera từ phác thảo."
         )
         light_ext_2 = st.selectbox(
             "Kịch bản ánh sáng (PA 2):",
@@ -691,7 +691,9 @@ with tab_ext:
         else "Chưa có kết quả Ngoại thất PA 1..."
     )
     render_prompt_card(
-        "Phương án 1 (AI Đề xuất theo Style):", prompt1_text_ext, "p1_ext"
+        "Phương án 1 (AI Đề xuất Style & Nhận diện Góc camera):",
+        prompt1_text_ext,
+        "p1_ext",
     )
     st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
     prompt2_text_ext = (
@@ -817,8 +819,8 @@ with tab_int:
       with st.container(border=True):
         st.markdown("**2. Kịch bản Ánh sáng (PA 2)**")
         st.caption(
-            "🤖 **Phương án 1:** AI tự động phân tích Style để chọn Ánh sáng, Bối"
-            " cảnh & Hiệu ứng chuẩn nhất."
+            "🤖 **Phương án 1:** AI tự động phân tích Style & Nhận diện chuẩn"
+            " Góc camera từ phác thảo."
         )
         light_int_2 = st.selectbox(
             "Kịch bản ánh sáng Nội thất (PA 2):",
@@ -887,7 +889,9 @@ with tab_int:
         else "Chưa có kết quả Nội thất PA 1..."
     )
     render_prompt_card(
-        "Phương án 1 (AI Đề xuất theo Style):", prompt1_text_int, "p1_int"
+        "Phương án 1 (AI Đề xuất Style & Nhận diện Góc camera):",
+        prompt1_text_int,
+        "p1_int",
     )
     st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
     prompt2_text_int = (

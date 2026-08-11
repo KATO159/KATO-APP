@@ -358,7 +358,6 @@ film_ext_options = [
     "B6 - Black Pro-Mist 1/4",
 ]
 
-# Kịch bản ánh sáng Nội thất đầy đủ 10 tùy chọn chuyên sâu
 lighting_int_options = [
     "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
     "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
@@ -381,7 +380,6 @@ lighting_int_options = [
     "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)",
 ]
 
-# Hiệu ứng hình ảnh & Nhiếp ảnh chuyên sâu cho Nội thất (8 tùy chọn)
 film_int_options = [
     "F0 - None (Màu nguyên bản chất liệu)",
     (
@@ -435,16 +433,6 @@ def process_gemini_analysis(
           " để áp lên khung nét của **@ảnh phác thảo**."
       )
 
-  clean_light1 = (
-      light_opt1.split(" - ")[1] if " - " in light_opt1 else light_opt1
-  )
-  clean_film1 = film_opt1.split(" - ")[1] if " - " in film_opt1 else film_opt1
-  film_text1 = (
-      f"kết hợp hiệu ứng {clean_film1}"
-      if ("B0 - None" not in film_opt1 and "F0 - None" not in film_opt1)
-      else "giữ màu sắc tự nhiên chân thực, không áp hiệu ứng màu phim"
-  )
-
   clean_light2 = (
       light_opt2.split(" - ")[1] if " - " in light_opt2 else light_opt2
   )
@@ -471,20 +459,24 @@ def process_gemini_analysis(
     Bạn là một chuyên gia phân tích {domain_str} và diễn họa 3D. 
     Hãy nhìn vào hình ảnh phác thảo được cung cấp và tạo ra CÁC CÂU LỆNH (prompt) mô tả chi tiết bằng TIẾNG VIỆT để đưa vào phần mềm sinh ảnh Flow.
 
-    Nhiệm vụ của bạn là tạo ra 2 PHƯƠNG ÁN PROMPT (Phương án 1 và Phương án 2) để so sánh kịch bản ánh sáng và hiệu ứng màu sắc.
+    Nhiệm vụ của bạn là tạo ra 2 PHƯƠNG ÁN PROMPT (Phương án 1 và Phương án 2) để so sánh kịch bản ánh sáng và hiệu ứng màu sắc:
+
+    - PHƯƠNG ÁN 1 (AI ĐỀ XUẤT TỰ ĐỘNG THEO STYLE):
+      + Bạn hãy TỰ ĐỘNG phân tích và nhận diện chính xác phong cách thiết kế của **@ảnh phác thảo** (ví dụ: Modern Luxury, Japandi, Indochine, Scandinavian, Minimalist, Industrial, Classic...).
+      + Dựa trên phong cách thiết kế đã nhận diện, hãy TỰ ĐỘNG ĐỀ XUẤT kịch bản ánh sáng và hiệu ứng nhiếp ảnh/màu sắc hoàn hảo nhất để làm tôn vinh trọn vẹn từng đường nét và chất liệu không gian.
+
+    - PHƯƠNG ÁN 2 (THỬ NGHIỆM THEO TÙY CHỌN NGƯỜI DÙNG):
+      + Bắt buộc áp dụng kịch bản ánh sáng theo phong cách {clean_light2}, 16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V {film_text2}.
 
     BẮT BUỘC ĐỒNG BỘ VẬT LIỆU & HÌNH KHỐI (100% GIỐNG NHAU):
     - Toàn bộ nội dung mô tả {detail_str} của Phương án 1 và Phương án 2 BẮT BUỘC PHẢI GIỐNG NHAU 100% (dùng chung một mô tả được trích xuất từ **@ảnh phác thảo**).
-    - Sự khác biệt DUY NHẤT giữa 2 phương án là phần miêu tả kịch bản ánh sáng và thông số nhiếp ảnh ở cuối câu lệnh:
-      + Phương án 1: Không khí ánh sáng theo phong cách {clean_light1}, 16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V {film_text1}.
-      + Phương án 2: Không khí ánh sáng theo phong cách {clean_light2}, 16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V {film_text2}.
-
+    
     Quy tắc trình bày & cấu trúc Prompt:
     1. Cả 2 câu lệnh BẮT BUỘC bắt đầu bằng cụm từ chính xác: 'Ảnh chụp thực tế'.
     2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc chụp, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Thông số nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần.
     3. Phân tích đầy đủ {detail_str}.
     4. BẮT BUỘC bổ sung đầy đủ thông số máy ảnh '16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V' vào phần nhiếp ảnh cuối mỗi phương án.
-    5. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'I1', 'Kịch bản ánh sáng A1' làm tiêu đề.
+    5. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'I1' làm tiêu đề.
     6. Nếu có thêm ảnh tham chiếu, hãy bổ sung cú pháp sử dụng 2 thẻ **@ảnh phác thảo** (khóa khung nét) và **@ảnh tham chiếu**. {ref_instruction}
 
     ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:
@@ -554,11 +546,9 @@ with tab_ext:
 
       with st.container(border=True):
         st.markdown("**2. Kịch bản Ánh sáng**")
-        light_ext_1 = st.selectbox(
-            "Kịch bản ánh sáng (PA 1):",
-            lighting_ext_options,
-            key="light_ext1",
-            disabled=is_disabled_ext,
+        st.caption(
+            "🤖 **Phương án 1:** AI tự phân tích Style đề xuất Ánh sáng & Hiệu"
+            " ứng."
         )
         light_ext_2 = st.selectbox(
             "Kịch bản ánh sáng (PA 2):",
@@ -570,13 +560,6 @@ with tab_ext:
 
       with st.container(border=True):
         st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
-        film_ext_1 = st.selectbox(
-            "Hiệu ứng màu sắc (PA 1):",
-            film_ext_options,
-            index=1,
-            key="film_ext1",
-            disabled=is_disabled_ext,
-        )
         film_ext_2 = st.selectbox(
             "Hiệu ứng màu sắc (PA 2):",
             film_ext_options,
@@ -624,7 +607,7 @@ with tab_ext:
         else "Chưa có kết quả Ngoại thất PA 1..."
     )
     render_prompt_card(
-        "Phương án 1 (Ngoại thất):", prompt1_text_ext, "p1_ext"
+        "Phương án 1 (AI Đề xuất theo Style):", prompt1_text_ext, "p1_ext"
     )
     st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
     prompt2_text_ext = (
@@ -633,7 +616,7 @@ with tab_ext:
         else "Chưa có kết quả Ngoại thất PA 2..."
     )
     render_prompt_card(
-        "Phương án 2 (Ngoại thất):", prompt2_text_ext, "p2_ext"
+        "Phương án 2 (Thử nghiệm PA 2):", prompt2_text_ext, "p2_ext"
     )
 
   with col_right_e:
@@ -697,8 +680,8 @@ with tab_ext:
         p1, p2 = process_gemini_analysis(
             api_key_ext,
             selected_model_ext,
-            light_ext_1,
-            film_ext_1,
+            "",
+            "",
             light_ext_2,
             film_ext_2,
             sketch_img_ext,
@@ -747,12 +730,9 @@ with tab_int:
 
       with st.container(border=True):
         st.markdown("**2. Kịch bản Ánh sáng**")
-        light_int_1 = st.selectbox(
-            "Kịch bản ánh sáng Nội thất (PA 1):",
-            lighting_int_options,
-            index=0,
-            key="light_int1",
-            disabled=is_disabled_int,
+        st.caption(
+            "🤖 **Phương án 1:** AI tự động phân tích Style để chọn Ánh sáng &"
+            " Hiệu ứng chuẩn nhất."
         )
         light_int_2 = st.selectbox(
             "Kịch bản ánh sáng Nội thất (PA 2):",
@@ -764,17 +744,10 @@ with tab_int:
 
       with st.container(border=True):
         st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
-        film_int_1 = st.selectbox(
-            "Hiệu ứng màu sắc (PA 1):",
-            film_int_options,
-            index=1,
-            key="film_int1",
-            disabled=is_disabled_int,
-        )
         film_int_2 = st.selectbox(
             "Hiệu ứng màu sắc (PA 2):",
             film_int_options,
-            index=2,
+            index=1,
             key="film_int2",
             disabled=is_disabled_int,
         )
@@ -817,14 +790,18 @@ with tab_int:
         if st.session_state.p1_res_int
         else "Chưa có kết quả Nội thất PA 1..."
     )
-    render_prompt_card("Phương án 1 (Nội thất):", prompt1_text_int, "p1_int")
+    render_prompt_card(
+        "Phương án 1 (AI Đề xuất theo Style):", prompt1_text_int, "p1_int"
+    )
     st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
     prompt2_text_int = (
         st.session_state.p2_res_int
         if st.session_state.p2_res_int
         else "Chưa có kết quả Nội thất PA 2..."
     )
-    render_prompt_card("Phương án 2 (Nội thất):", prompt2_text_int, "p2_int")
+    render_prompt_card(
+        "Phương án 2 (Thử nghiệm PA 2):", prompt2_text_int, "p2_int"
+    )
 
   with col_right_i:
     with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
@@ -889,8 +866,8 @@ with tab_int:
         p1, p2 = process_gemini_analysis(
             api_key_int,
             selected_model_int,
-            light_int_1,
-            film_int_1,
+            "",
+            "",
             light_int_2,
             film_int_2,
             sketch_img_int,

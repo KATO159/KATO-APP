@@ -386,15 +386,16 @@ def process_gemini_analysis(api_key, selected_model, light_opt1, film_opt1, ligh
     BẮT BUỘC ĐỒNG BỘ VẬT LIỆU & HÌNH KHỐI (100% GIỐNG NHAU):
     - Toàn bộ nội dung mô tả {detail_str} của Phương án 1 và Phương án 2 BẮT BUỘC PHẢI GIỐNG NHAU 100% (dùng chung một mô tả được trích xuất từ **@ảnh phác thảo**).
     - Sự khác biệt DUY NHẤT giữa 2 phương án là phần miêu tả kịch bản ánh sáng và thông số nhiếp ảnh ở cuối câu lệnh:
-      + Phương án 1: Không khí ánh sáng theo phong cách {clean_light1}, shot on Sony Alpha A7R V {film_text1}.
-      + Phương án 2: Không khí ánh sáng theo phong cách {clean_light2}, shot on Sony Alpha A7R V {film_text2}.
+      + Phương án 1: Không khí ánh sáng theo phong cách {clean_light1}, 16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V {film_text1}.
+      + Phương án 2: Không khí ánh sáng theo phong cách {clean_light2}, 16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V {film_text2}.
 
     Quy tắc trình bày & cấu trúc Prompt:
     1. Cả 2 câu lệnh BẮT BUỘC bắt đầu bằng cụm từ chính xác: 'Ảnh chụp thực tế'.
-    2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc chụp, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần, KHÔNG bắt buộc gộp chung thành một đoạn liền mạch.
+    2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc chụp, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Thông số nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần.
     3. Phân tích đầy đủ {detail_str}.
-    4. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'I1', 'Kịch bản ánh sáng A1' làm tiêu đề.
-    5. Nếu có thêm ảnh tham chiếu, hãy bổ sung cú pháp sử dụng 2 thẻ **@ảnh phác thảo** (khóa khung nét) và **@ảnh tham chiếu**. {ref_instruction}
+    4. BẮT BUỘC bổ sung đầy đủ thông số máy ảnh '16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V' vào phần nhiếp ảnh cuối mỗi phương án.
+    5. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'I1', 'Kịch bản ánh sáng A1' làm tiêu đề.
+    6. Nếu có thêm ảnh tham chiếu, hãy bổ sung cú pháp sử dụng 2 thẻ **@ảnh phác thảo** (khóa khung nét) và **@ảnh tham chiếu**. {ref_instruction}
 
     ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:
     Trả về đúng định dạng sau, được phân tách bằng dòng `===PA_SPLIT===`:

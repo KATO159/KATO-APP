@@ -32,7 +32,7 @@ def clean_prompt_text(text: str) -> str:
   return "\n".join(lines).strip()
 
 
-# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64
+# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64 (Tối ưu hiệu năng)
 @st.cache_data(show_spinner=False)
 def file_bytes_to_b64(file_bytes: bytes) -> str:
   img = Image.open(io.BytesIO(file_bytes))
@@ -342,7 +342,7 @@ if st.session_state.get("show_dog_modal", False):
   )
 
 # ==================== DANH SÁCH TÙY CHỌN ====================
-# Kịch bản ánh sáng Ngoại thất đầy đủ (7 tùy chọn)
+# Kịch bản ánh sáng Ngoại thất (7 tùy chọn)
 lighting_ext_options = [
     "A1 - Nắng sáng sớm trong trẻo (Bright Early Morning Sun)",
     (
@@ -362,7 +362,24 @@ lighting_ext_options = [
     "A7 - Sau mưa / Sân ướt phản chiếu (Post-Rain Wet Surface Reflections)",
 ]
 
-# Hiệu ứng hình ảnh & Nhiếp ảnh Ngoại thất chuyên sâu (6 tùy chọn)
+# Bối cảnh Môi trường Ngoại thất (4 tùy chọn)
+context_ext_options = [
+    "C1 - Phố thị hiện đại (Urban Street & Paved Sidewalk - Neat & Clean)",
+    (
+        "C2 - Biệt thự sân vườn nhiệt đới (Tropical Villa Garden & Pool - Clean"
+        " & Subtle Greenery)"
+    ),
+    (
+        "C3 - Ngoại ô / Khu nghỉ dưỡng (Suburban Resort & Nature Greenery -"
+        " Minimalist Surroundings)"
+    ),
+    (
+        "C4 - Mặt đường sau mưa (Post-Rain Wet Asphalt Reflections - Subtle"
+        " Night Reflections)"
+    ),
+]
+
+# Hiệu ứng hình ảnh & Nhiếp ảnh Ngoại thất (6 tùy chọn)
 film_ext_options = [
     "B0 - None (Màu nguyên bản công trình)",
     (
@@ -381,7 +398,7 @@ film_ext_options = [
     ),
 ]
 
-# Kịch bản ánh sáng Nội thất đầy đủ (10 tùy chọn)
+# Kịch bản ánh sáng Nội thất (10 tùy chọn)
 lighting_int_options = [
     "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
     "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
@@ -402,6 +419,26 @@ lighting_int_options = [
     ),
     "I9 - Tối nghệ thuật & Đèn rọi điểm nhấn (Moody Dark & Accent Spotlights)",
     "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)",
+]
+
+# Bối cảnh Môi trường Nội thất (4 tùy chọn)
+context_int_options = [
+    (
+        "C1 - View sân vườn nhiệt đới qua kính (Glass Wall to Tropical Garden"
+        " View - Soft Ambient Green)"
+    ),
+    (
+        "C2 - View thành phố trên cao (High-Rise City Skyline View - Natural"
+        " High-Rise Light)"
+    ),
+    (
+        "C3 - Vệt nắng & Hạt bụi vờn nhẹ (Volumetric Sunlight & Floating Dust"
+        " Motes - Atmospheric Depth)"
+    ),
+    (
+        "C4 - Dấu vết sinh hoạt gọn gàng (Lived-in Clean Details - Fresh Flora"
+        " & Neat Decor)"
+    ),
 ]
 
 # Hiệu ứng hình ảnh & Nhiếp ảnh Nội thất (8 tùy chọn)
@@ -430,8 +467,10 @@ def process_gemini_analysis(
     api_key,
     selected_model,
     light_opt1,
+    context_opt1,
     film_opt1,
     light_opt2,
+    context_opt2,
     film_opt2,
     sketch_img,
     ref_img,
@@ -461,6 +500,9 @@ def process_gemini_analysis(
   clean_light2 = (
       light_opt2.split(" - ")[1] if " - " in light_opt2 else light_opt2
   )
+  clean_context2 = (
+      context_opt2.split(" - ")[1] if " - " in context_opt2 else context_opt2
+  )
   clean_film2 = film_opt2.split(" - ")[1] if " - " in film_opt2 else film_opt2
   film_text2 = (
       f"kết hợp hiệu ứng {clean_film2}"
@@ -481,27 +523,34 @@ def process_gemini_analysis(
   )
 
   system_instruction = f"""
-    Bạn là một chuyên gia phân tích {domain_str} và diễn họa 3D. 
+    Bạn là một chuyên gia phân tích {domain_str} và diễn họa 3D thương mại cao cấp. 
     Hãy nhìn vào hình ảnh phác thảo được cung cấp và tạo ra CÁC CÂU LỆNH (prompt) mô tả chi tiết bằng TIẾNG VIỆT để đưa vào phần mềm sinh ảnh Flow.
 
-    Nhiệm vụ của bạn là tạo ra 2 PHƯƠNG ÁN PROMPT (Phương án 1 và Phương án 2) để so sánh kịch bản ánh sáng và hiệu ứng màu sắc:
+    Nhiệm vụ của bạn là tạo ra 2 PHƯƠNG ÁN PROMPT (Phương án 1 và Phương án 2) để so sánh kịch bản ánh sáng, bối cảnh môi trường và hiệu ứng màu sắc:
+
+    Quy tắc VÀNG về Bối cảnh Môi trường (Áp dụng cho cả 2 phương án):
+    - TỈ LỆ VÀNG 80/20: Chủ thể công trình/không gian nội thất chính từ **@ảnh phác thảo** BẮT BUỘC chiếm 80% thị giác ở trung tâm. Bối cảnh môi trường xung quanh chỉ đóng vai trò nền phụ chiếm tối đa 20% rìa khung hình.
+    - SẠCH SẼ & GỌN GÀNG TỐI ĐA: Bối cảnh xung quanh tuyệt đối KHÔNG lộn xộn, KHÔNG có rác, dây điện rối hay chi tiết thừa. Tất cả phải gọn gàng, tinh tế và sang trọng để TÔN CÔNG TRÌNH CHÍNH LÊN LÀM TÂM ĐIỂM, tuyệt đối không được tranh chấp điểm nhìn.
+    - ĐỘ NÉT DỊU HỖ TRỢ: Bối cảnh cảnh quan hậu cảnh hoặc view qua kính có độ nét mềm dịu nhẹ (soft depth of field), hỗ trợ tôn lên đường nét kiến trúc chính.
 
     - PHƯƠNG ÁN 1 (AI ĐỀ XUẤT TỰ ĐỘNG THEO STYLE):
       + Bạn hãy TỰ ĐỘNG phân tích và nhận diện chính xác phong cách thiết kế của **@ảnh phác thảo** (ví dụ: Modern Luxury, Japandi, Indochine, Scandinavian, Minimalist, Industrial, Classic...).
-      + Dựa trên phong cách thiết kế đã nhận diện, hãy TỰ ĐỘNG ĐỀ XUẤT kịch bản ánh sáng và hiệu ứng nhiếp ảnh/màu sắc hoàn hảo nhất để làm tôn vinh trọn vẹn từng đường nét và chất liệu không gian.
+      + Dựa trên phong cách thiết kế đã nhận diện, hãy TỰ ĐỘNG ĐỀ XUẤT kịch bản ánh sáng, bối cảnh môi trường sạch sẽ tinh tế và hiệu ứng nhiếp ảnh/màu sắc hoàn hảo nhất để làm tôn vinh trọn vẹn vẻ đẹp thực tế của không gian.
 
     - PHƯƠNG ÁN 2 (THỬ NGHIỆM THEO TÙY CHỌN NGƯỜI DÙNG):
-      + Bắt buộc áp dụng kịch bản ánh sáng theo phong cách {clean_light2}, 16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V {film_text2}.
+      + Bắt buộc áp dụng kịch bản ánh sáng theo phong cách {clean_light2}.
+      + Bắt buộc đặt trong bối cảnh môi trường {clean_context2} (gọn gàng, tinh tế, tôn công trình chính).
+      + Bắt buộc tích hợp thông số máy ảnh '16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V' {film_text2}.
 
     BẮT BUỘC ĐỒNG BỘ VẬT LIỆU & HÌNH KHỐI (100% GIỐNG NHAU):
-    - Toàn bộ nội dung mô tả {detail_str} của Phương án 1 và Phương án 2 BẮT BUỘC PHẢI GIỐNG NHAU 100% (dùng chung một mô tả được trích xuất từ **@ảnh phác thảo**).
+    - Toàn bộ nội dung mô tả {detail_str} của Phương án 1 và Phương án 2 BẮT BUỘC PHẢI GIỐNG NHAU 100% (dùng chung một mô tả trích xuất từ **@ảnh phác thảo**).
     
     Quy tắc trình bày & cấu trúc Prompt:
     1. Cả 2 câu lệnh BẮT BUỘC bắt đầu bằng cụm từ chính xác: 'Ảnh chụp thực tế'.
-    2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc chụp, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Thông số nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần.
+    2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc chụp, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Bối cảnh môi trường, Thông số nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần.
     3. Phân tích đầy đủ {detail_str}.
     4. BẮT BUỘC bổ sung đầy đủ thông số máy ảnh '16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V' vào phần nhiếp ảnh cuối mỗi phương án.
-    5. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'I1' làm tiêu đề.
+    5. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'C1', 'I1' làm tiêu đề.
     6. Nếu có thêm ảnh tham chiếu, hãy bổ sung cú pháp sử dụng 2 thẻ **@ảnh phác thảo** (khóa khung nét) và **@ảnh tham chiếu**. {ref_instruction}
 
     ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:
@@ -570,10 +619,10 @@ with tab_ext:
         )
 
       with st.container(border=True):
-        st.markdown("**2. Kịch bản Ánh sáng**")
+        st.markdown("**2. Kịch bản Ánh sáng (PA 2)**")
         st.caption(
-            "🤖 **Phương án 1:** AI tự phân tích Style đề xuất Ánh sáng & Hiệu"
-            " ứng."
+            "🤖 **Phương án 1:** AI tự phân tích Style đề xuất Ánh sáng, Bối"
+            " cảnh & Hiệu ứng."
         )
         light_ext_2 = st.selectbox(
             "Kịch bản ánh sáng (PA 2):",
@@ -584,7 +633,17 @@ with tab_ext:
         )
 
       with st.container(border=True):
-        st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
+        st.markdown("**3. Bối cảnh Môi trường (PA 2)**")
+        context_ext_2 = st.selectbox(
+            "Bối cảnh môi trường (PA 2):",
+            context_ext_options,
+            index=1,
+            key="context_ext2",
+            disabled=is_disabled_ext,
+        )
+
+      with st.container(border=True):
+        st.markdown("**4. Hiệu ứng Hình ảnh & Nhiếp ảnh (PA 2)**")
         film_ext_2 = st.selectbox(
             "Hiệu ứng màu sắc (PA 2):",
             film_ext_options,
@@ -707,7 +766,9 @@ with tab_ext:
             selected_model_ext,
             "",
             "",
+            "",
             light_ext_2,
+            context_ext_2,
             film_ext_2,
             sketch_img_ext,
             ref_img_ext,
@@ -754,10 +815,10 @@ with tab_int:
         )
 
       with st.container(border=True):
-        st.markdown("**2. Kịch bản Ánh sáng**")
+        st.markdown("**2. Kịch bản Ánh sáng (PA 2)**")
         st.caption(
-            "🤖 **Phương án 1:** AI tự động phân tích Style để chọn Ánh sáng &"
-            " Hiệu ứng chuẩn nhất."
+            "🤖 **Phương án 1:** AI tự động phân tích Style để chọn Ánh sáng, Bối"
+            " cảnh & Hiệu ứng chuẩn nhất."
         )
         light_int_2 = st.selectbox(
             "Kịch bản ánh sáng Nội thất (PA 2):",
@@ -768,7 +829,17 @@ with tab_int:
         )
 
       with st.container(border=True):
-        st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
+        st.markdown("**3. Bối cảnh Môi trường (PA 2)**")
+        context_int_2 = st.selectbox(
+            "Bối cảnh môi trường (PA 2):",
+            context_int_options,
+            index=0,
+            key="context_int2",
+            disabled=is_disabled_int,
+        )
+
+      with st.container(border=True):
+        st.markdown("**4. Hiệu ứng Hình ảnh & Nhiếp ảnh (PA 2)**")
         film_int_2 = st.selectbox(
             "Hiệu ứng màu sắc (PA 2):",
             film_int_options,
@@ -893,7 +964,9 @@ with tab_int:
             selected_model_int,
             "",
             "",
+            "",
             light_int_2,
+            context_int_2,
             film_int_2,
             sketch_img_int,
             ref_img_int,

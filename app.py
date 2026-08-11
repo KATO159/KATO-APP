@@ -32,7 +32,7 @@ def clean_prompt_text(text: str) -> str:
   return "\n".join(lines).strip()
 
 
-# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64 (Tối ưu hiệu năng)
+# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64
 @st.cache_data(show_spinner=False)
 def file_bytes_to_b64(file_bytes: bytes) -> str:
   img = Image.open(io.BytesIO(file_bytes))
@@ -364,17 +364,17 @@ lighting_ext_options = [
 
 # Bối cảnh Môi trường Ngoại thất (4 tùy chọn)
 context_ext_options = [
-    "C1 - Phố thị hiện đại (Urban Street & Paved Sidewalk - Neat & Clean)",
+    "C1 - Phố thị hiện đại (Urban Street & Paved Sidewalk - Natural Layout)",
     (
-        "C2 - Biệt thự sân vườn nhiệt đới (Tropical Villa Garden & Pool - Clean"
-        " & Subtle Greenery)"
+        "C2 - Biệt thự sân vườn nhiệt đới (Tropical Villa Garden & Pool - Gentle"
+        " Greenery)"
     ),
     (
         "C3 - Ngoại ô / Khu nghỉ dưỡng (Suburban Resort & Nature Greenery -"
-        " Minimalist Surroundings)"
+        " Balanced Surroundings)"
     ),
     (
-        "C4 - Mặt đường sau mưa (Post-Rain Wet Asphalt Reflections - Subtle"
+        "C4 - Mặt đường sau mưa (Post-Rain Wet Asphalt Reflections - Realistic"
         " Night Reflections)"
     ),
 ]
@@ -436,8 +436,8 @@ context_int_options = [
         " Motes - Atmospheric Depth)"
     ),
     (
-        "C4 - Dấu vết sinh hoạt gọn gàng (Lived-in Clean Details - Fresh Flora"
-        " & Neat Decor)"
+        "C4 - Dấu vết sinh hoạt tự nhiên (Lived-in Natural Details - Fresh Flora"
+        " & Balanced Decor)"
     ),
 ]
 
@@ -523,23 +523,23 @@ def process_gemini_analysis(
   )
 
   system_instruction = f"""
-    Bạn là một chuyên gia phân tích {domain_str} và diễn họa 3D thương mại cao cấp. 
+    Bạn là một chuyên gia phân tích {domain_str} và nhiếp ảnh kiến trúc thương mại cao cấp. 
     Hãy nhìn vào hình ảnh phác thảo được cung cấp và tạo ra CÁC CÂU LỆNH (prompt) mô tả chi tiết bằng TIẾNG VIỆT để đưa vào phần mềm sinh ảnh Flow.
 
     Nhiệm vụ của bạn là tạo ra 2 PHƯƠNG ÁN PROMPT (Phương án 1 và Phương án 2) để so sánh kịch bản ánh sáng, bối cảnh môi trường và hiệu ứng màu sắc:
 
     Quy tắc VÀNG về Bối cảnh Môi trường (Áp dụng cho cả 2 phương án):
     - TỈ LỆ VÀNG 80/20: Chủ thể công trình/không gian nội thất chính từ **@ảnh phác thảo** BẮT BUỘC chiếm 80% thị giác ở trung tâm. Bối cảnh môi trường xung quanh chỉ đóng vai trò nền phụ chiếm tối đa 20% rìa khung hình.
-    - SẠCH SẼ & GỌN GÀNG TỐI ĐA: Bối cảnh xung quanh tuyệt đối KHÔNG lộn xộn, KHÔNG có rác, dây điện rối hay chi tiết thừa. Tất cả phải gọn gàng, tinh tế và sang trọng để TÔN CÔNG TRÌNH CHÍNH LÊN LÀM TÂM ĐIỂM, tuyệt đối không được tranh chấp điểm nhìn.
+    - THOÁNG ĐÃNG & HÀI HOÀ TỰ NHIÊN: Cảnh quan hậu cảnh nhã nhặn, bố cục thoáng đãng, giữ nhịp điệu ánh sáng tự nhiên để TÔN CÔNG TRÌNH CHÍNH LÊN LÀM TÂM ĐIỂM, tránh các vật thể rác làm xao nhãng thị giác. BẮT BUỘC KHÔNG DÙNG các từ ngữ mang tính "tiệt trùng 3D" như "sạch sẽ", "hoàn hảo", "không chi tiết thừa".
     - ĐỘ NÉT DỊU HỖ TRỢ: Bối cảnh cảnh quan hậu cảnh hoặc view qua kính có độ nét mềm dịu nhẹ (soft depth of field), hỗ trợ tôn lên đường nét kiến trúc chính.
 
     - PHƯƠNG ÁN 1 (AI ĐỀ XUẤT TỰ ĐỘNG THEO STYLE):
       + Bạn hãy TỰ ĐỘNG phân tích và nhận diện chính xác phong cách thiết kế của **@ảnh phác thảo** (ví dụ: Modern Luxury, Japandi, Indochine, Scandinavian, Minimalist, Industrial, Classic...).
-      + Dựa trên phong cách thiết kế đã nhận diện, hãy TỰ ĐỘNG ĐỀ XUẤT kịch bản ánh sáng, bối cảnh môi trường sạch sẽ tinh tế và hiệu ứng nhiếp ảnh/màu sắc hoàn hảo nhất để làm tôn vinh trọn vẹn vẻ đẹp thực tế của không gian.
+      + Dựa trên phong cách thiết kế đã nhận diện, hãy TỰ ĐỘNG ĐỀ XUẤT kịch bản ánh sáng, bối cảnh môi trường nhã nhặn tự nhiên và hiệu ứng nhiếp ảnh/màu sắc hoàn hảo nhất để làm tôn vinh trọn vẹn vẻ đẹp thực tế của không gian.
 
     - PHƯƠNG ÁN 2 (THỬ NGHIỆM THEO TÙY CHỌN NGƯỜI DÙNG):
       + Bắt buộc áp dụng kịch bản ánh sáng theo phong cách {clean_light2}.
-      + Bắt buộc đặt trong bối cảnh môi trường {clean_context2} (gọn gàng, tinh tế, tôn công trình chính).
+      + Bắt buộc đặt trong bối cảnh môi trường {clean_context2} (thoáng đãng, nhã nhặn, tôn công trình chính).
       + Bắt buộc tích hợp thông số máy ảnh '16mm wide-angle lens, f/8 aperture, shot on Sony Alpha A7R V' {film_text2}.
 
     BẮT BUỘC ĐỒNG BỘ VẬT LIỆU & HÌNH KHỐI (100% GIỐNG NHAU):

@@ -19,13 +19,12 @@ if "uploader_key_int" not in st.session_state:
 if "show_dog_modal" not in st.session_state:
     st.session_state.show_dog_modal = False
 
-# Hàm chuẩn hóa văn bản về 1 đoạn liền mạch
-def clean_to_single_paragraph(text: str) -> str:
+# Hàm làm sạch văn bản giữ nguyên cấu trúc phân đoạn
+def clean_prompt_text(text: str) -> str:
     if not text:
         return ""
-    lines = [re.sub(r'^\s*[\-\*\•\d\.]+\s*', '', line).strip() for line in text.splitlines() if line.strip()]
-    single_line = " ".join(lines)
-    return re.sub(r'\s+', ' ', single_line).strip()
+    lines = [line.rstrip() for line in text.splitlines()]
+    return "\n".join(lines).strip()
 
 # Hàm chuyển đổi PIL Image sang Base64
 def image_to_b64(img):
@@ -386,22 +385,22 @@ def process_gemini_analysis(api_key, selected_model, light_opt1, film_opt1, ligh
 
     BẮT BUỘC ĐỒNG BỘ VẬT LIỆU & HÌNH KHỐI (100% GIỐNG NHAU):
     - Toàn bộ nội dung mô tả {detail_str} của Phương án 1 và Phương án 2 BẮT BUỘC PHẢI GIỐNG NHAU 100% (dùng chung một mô tả được trích xuất từ **@ảnh phác thảo**).
-    - Sự khác biệt DUY NHẤT giữa 2 phương án là đoạn miêu tả kịch bản ánh sáng và thông số nhiếp ảnh ở cuối câu lệnh:
+    - Sự khác biệt DUY NHẤT giữa 2 phương án là phần miêu tả kịch bản ánh sáng và thông số nhiếp ảnh ở cuối câu lệnh:
       + Phương án 1: Không khí ánh sáng theo phong cách {clean_light1}, shot on Sony Alpha A7R V {film_text1}.
       + Phương án 2: Không khí ánh sáng theo phong cách {clean_light2}, shot on Sony Alpha A7R V {film_text2}.
 
-    Quy tắc bắt buộc chung:
+    Quy tắc trình bày & cấu trúc Prompt:
     1. Cả 2 câu lệnh BẮT BUỘC bắt đầu bằng cụm từ chính xác: 'Ảnh chụp thực tế'.
-    2. QUY TẮC TRÌNH BÀY BẮT BUỘC: Mỗi phương án CHỈ ĐƯỢC VIẾT THÀNH 01 ĐOẠN VĂN LIỀN MẠCH DUY NHẤT. Tuyệt đối KHÔNG xuống dòng, KHÔNG tạo đoạn mới, KHÔNG dùng gạch đầu dòng, KHÔNG tạo danh sách dạng số.
+    2. CẤU TRÚC PHÂN THÀNH CÁC PHẦN RÕ RÀNG: Hãy chia nhỏ cấu trúc Prompt thành các thành phần chi tiết (ví dụ: Chủ thể & Góc chụp, Vật liệu & Bố cục chi tiết, Kịch bản ánh sáng & Nhiếp ảnh). ĐƯỢC PHÉP xuống dòng và ngắt đoạn hợp lý giữa các phần, KHÔNG bắt buộc gộp chung thành một đoạn liền mạch.
     3. Phân tích đầy đủ {detail_str}.
-    4. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'I1', 'Kịch bản ánh sáng' vào văn bản prompt.
+    4. KHÔNG bao giờ tự ý đưa các mã ký hiệu như 'A1', 'I1', 'Kịch bản ánh sáng A1' làm tiêu đề.
     5. Nếu có thêm ảnh tham chiếu, hãy bổ sung cú pháp sử dụng 2 thẻ **@ảnh phác thảo** (khóa khung nét) và **@ảnh tham chiếu**. {ref_instruction}
 
     ĐỊNH DẠNG ĐẦU RA BẮT BUỘC:
     Trả về đúng định dạng sau, được phân tách bằng dòng `===PA_SPLIT===`:
-    <01 đoạn văn liền mạch duy nhất của Phương án 1>
+    <Prompt Phương án 1 đầy đủ các thành phần cấu trúc>
     ===PA_SPLIT===
-    <01 đoạn văn liền mạch duy nhất của Phương án 2>
+    <Prompt Phương án 2 đầy đủ các thành phần cấu trúc>
 
     Không thêm lời dẫn hay giải thích thừa ngoài định dạng trên.
     """
@@ -415,10 +414,10 @@ def process_gemini_analysis(api_key, selected_model, light_opt1, film_opt1, ligh
 
     if "===PA_SPLIT===" in result_text:
         parts = result_text.split("===PA_SPLIT===")
-        p1 = clean_to_single_paragraph(parts[0])
-        p2 = clean_to_single_paragraph(parts[1])
+        p1 = clean_prompt_text(parts[0])
+        p2 = clean_prompt_text(parts[1])
     else:
-        p1 = clean_to_single_paragraph(result_text)
+        p1 = clean_prompt_text(result_text)
         p2 = None
 
     return p1, p2

@@ -182,21 +182,20 @@ def render_clickable_image(img_b64, caption, uploader_index):
     """
     components.html(html_code, height=230)
 
-# CSS GIAO DIỆN HỆ THỐNG
+# CSS GIAO DIỆN HỆ THỐNG (ẨN TIÊU ĐỀ HỆ THỐNG ĐỂ BẤM CHUYỂN TAB)
 st.markdown("""
 <style>
 section[data-testid="stSidebar"] { display: none !important; }
-div[data-testid="stHeader"], header[data-testid="stHeader"] { display: flex !important; background: transparent !important; z-index: 99 !important; pointer-events: none !important; }
-div[data-testid="stHeader"] *, header[data-testid="stHeader"] * { pointer-events: auto !important; }
+div[data-testid="stHeader"], header[data-testid="stHeader"] { display: none !important; }
 
-.block-container { padding-top: 1.5rem !important; padding-bottom: 0.2rem !important; padding-left: 1.2rem !important; padding-right: 1.2rem !important; max-width: 100% !important; margin-top: 0rem !important; }
+.block-container { padding-top: 3.8rem !important; padding-bottom: 0.2rem !important; padding-left: 1.2rem !important; padding-right: 1.2rem !important; max-width: 100% !important; margin-top: 0rem !important; }
 
 /* Custom Styling for Tabs */
-button[data-baseweb="tab"] { font-size: 1.1rem !important; font-weight: 700 !important; padding: 0.6rem 1.8rem !important; border-radius: 8px 8px 0 0 !important; }
+button[data-baseweb="tab"] { font-size: 1.1rem !important; font-weight: 700 !important; padding: 0.6rem 1.8rem !important; border-radius: 8px 8px 0 0 !important; cursor: pointer !important; }
 button[aria-selected="true"] { background-color: #262730 !important; color: #28a745 !important; border-bottom: 3px solid #28a745 !important; }
 
 div[data-testid="stExpander"] { background-color: #1e1e24 !important; border: 1px solid #363945 !important; border-radius: 10px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; }
-div[data-testid="stExpander"]:has(details[open]) { height: calc(100vh - 7.5rem) !important; min-height: calc(100vh - 7.5rem) !important; max-height: calc(100vh - 7.5rem) !important; display: flex !important; flex-direction: column !important; }
+div[data-testid="stExpander"]:has(details[open]) { height: calc(100vh - 8.5rem) !important; min-height: calc(100vh - 8.5rem) !important; max-height: calc(100vh - 8.5rem) !important; display: flex !important; flex-direction: column !important; }
 div[data-testid="stExpander"]:has(details:not([open])) { height: auto !important; min-height: auto !important; max-height: auto !important; }
 div[data-testid="stExpander"] details { display: flex !important; flex-direction: column !important; height: 100% !important; overflow: hidden !important; }
 div[data-testid="stExpander"] details summary { font-weight: 600 !important; font-size: 0.95rem !important; color: #e0e0e0 !important; padding: 0.5rem 0.8rem !important; flex-shrink: 0 !important; }

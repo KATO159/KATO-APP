@@ -7,7 +7,7 @@ import re, os, io, base64, html
 # Cấu hình trang Streamlit
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
-# Khởi tạo session_state cho cả Ngoại thất và Nội thất
+# Khởi tạo session_state
 for key in ["p1_res_ext", "p2_res_ext", "p1_res_int", "p2_res_int"]:
     if key not in st.session_state:
         st.session_state[key] = None
@@ -19,25 +19,28 @@ if "uploader_key_int" not in st.session_state:
 if "show_dog_modal" not in st.session_state:
     st.session_state.show_dog_modal = False
 
-# Hàm làm sạch văn bản giữ nguyên cấu trúc phân đoạn
+# Hàm làm sạch văn bản
 def clean_prompt_text(text: str) -> str:
     if not text:
         return ""
     lines = [line.rstrip() for line in text.splitlines()]
     return "\n".join(lines).strip()
 
-# Hàm chuyển đổi PIL Image sang Base64
-def image_to_b64(img):
+# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64 (Tối ưu 100% tốc độ load ảnh)
+@st.cache_data(show_spinner=False)
+def file_bytes_to_b64(file_bytes: bytes) -> str:
+    img = Image.open(io.BytesIO(file_bytes))
     buffered = io.BytesIO()
     if img.mode in ("RGBA", "P"):
         img_conv = img.convert("RGBA")
         img_conv.save(buffered, format="PNG")
     else:
         img_conv = img.convert("RGB")
-        img_conv.save(buffered, format="JPEG", quality=90)
+        img_conv.save(buffered, format="JPEG", quality=85)
     return base64.b64encode(buffered.getvalue()).decode()
 
-# Hàm lọc bỏ nền xanh lá của ảnh chú chó
+# CACHE HÀM TẠO ẢNH CHÚ CHÓ (Chạy 1 lần duy nhất)
+@st.cache_data(show_spinner=False)
 def get_transparent_dog_b64():
     target_file = None
     explicit_files = [
@@ -184,14 +187,12 @@ def render_clickable_image(img_b64, caption, uploader_index):
 # CSS KHÓA KHUNG VỪA MÀN HÌNH & XỬ LÝ CLICK TAB
 st.markdown("""
 <style>
-/* Khóa cuộn trang toàn màn hình */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     overflow: hidden !important;
     height: 100vh !important;
     max-height: 100vh !important;
 }
 
-/* Cho phép click xuyên qua header nền trong suốt */
 div[data-testid="stHeader"], header[data-testid="stHeader"] {
     display: flex !important;
     background: transparent !important;
@@ -205,7 +206,6 @@ div[data-testid="stHeader"] *, header[data-testid="stHeader"] * {
 
 section[data-testid="stSidebar"] { display: none !important; }
 
-/* Căn chỉnh khoảng cách padding tổng thể */
 .block-container {
     padding-top: 3.2rem !important;
     padding-bottom: 0.2rem !important;
@@ -216,7 +216,6 @@ section[data-testid="stSidebar"] { display: none !important; }
     overflow: hidden !important;
 }
 
-/* Nút Tabs */
 div[data-baseweb="tab-list"] {
     z-index: 999999 !important;
     position: relative !important;
@@ -238,7 +237,6 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Khung Expander 2 bên khớp chiều cao màn hình */
 div[data-testid="stExpander"] {
     background-color: #1e1e24 !important;
     border: 1px solid #363945 !important;
@@ -317,7 +315,6 @@ if st.session_state.get("show_dog_modal", False):
     """, height=0)
 
 # ==================== DANH SÁCH TÙY CHỌN ====================
-# Ngoại thất
 lighting_ext_options = [
     "A1 - Ban ngày trong trẻo (Pure Daylight)",
     "A2 - Hoàng hôn ấm áp (Golden Hour)",
@@ -334,7 +331,6 @@ film_ext_options = [
     "B6 - Black Pro-Mist 1/4"
 ]
 
-# Nội thất
 lighting_int_options = [
     "I1 - Ánh sáng ban ngày qua cửa sổ (Soft Natural Window Light)",
     "I2 - Ánh sáng tự nhiên ban ngày tán xạ và đèn trang trí (Diffused Natural Daylight & Decorative Lighting)",
@@ -432,11 +428,8 @@ secret_api_key = st.secrets.get("GEMINI_API_KEY", "")
 # -------------------- TAB 1: NGOẠI THẤT --------------------
 with tab_ext:
     col_left_e, col_main_e, col_right_e = st.columns([1.0, 1.5, 1.0], gap="medium")
-
-    # Kiểm tra trạng thái "Chỉ lấy sáng" của Ngoại thất
     is_disabled_ext = st.session_state.get("only_light_ext", False)
 
-    # Cột trái Ngoại thất
     with col_left_e:
         with st.expander("⚙️ Cấu hình API & AI Model (Ngoại thất)", expanded=True):
             with st.container(border=True):
@@ -461,7 +454,6 @@ with tab_ext:
                 light_ext_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_ext_options, index=1, key="light_ext2", disabled=is_disabled_ext)
                 film_ext_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_ext_options, index=3, key="film_ext2", disabled=is_disabled_ext)
 
-    # Cột giữa Ngoại thất
     with col_main_e:
         h_col_e, b_col_e, s_col_e, c_col_e = st.columns([2.0, 2.0, 0.8, 0.8], vertical_alignment="center")
         with h_col_e: st.markdown('<p class="custom-header-title">Kết quả Prompt</p>', unsafe_allow_html=True)
@@ -482,15 +474,15 @@ with tab_ext:
         prompt2_text_ext = st.session_state.p2_res_ext if st.session_state.p2_res_ext else "Chưa có kết quả Ngoại thất PA 2..."
         render_prompt_card("Phương án 2 (Ngoại thất):", prompt2_text_ext, "p2_ext")
 
-    # Cột phải Ngoại thất
     with col_right_e:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
             with st.container(border=True):
                 st.markdown("**Ảnh phác thảo / CAD:**")
                 sketch_file_ext = st.file_uploader("Tải ảnh phác thảo Ngoại thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"sketch_up_ext_{st.session_state.uploader_key_ext}")
                 if sketch_file_ext:
-                    sketch_img_ext = Image.open(sketch_file_ext)
-                    render_clickable_image(image_to_b64(sketch_img_ext), "Ảnh phác thảo Ngoại thất", 0)
+                    sketch_bytes_ext = sketch_file_ext.getvalue()
+                    sketch_img_ext = Image.open(io.BytesIO(sketch_bytes_ext))
+                    render_clickable_image(file_bytes_to_b64(sketch_bytes_ext), "Ảnh phác thảo Ngoại thất", 0)
                 else: sketch_img_ext = None
 
             with st.container(border=True):
@@ -499,13 +491,13 @@ with tab_ext:
                 with r_head2_e: only_light_mode_ext = st.checkbox("Chỉ lấy sáng", value=False, key="only_light_ext")
                 ref_file_ext = st.file_uploader("Tải ảnh tham chiếu Ngoại thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"ref_up_ext_{st.session_state.uploader_key_ext}")
                 if ref_file_ext:
-                    ref_img_ext = Image.open(ref_file_ext)
-                    render_clickable_image(image_to_b64(ref_img_ext), "Ảnh tham chiếu Ngoại thất", 1)
+                    ref_bytes_ext = ref_file_ext.getvalue()
+                    ref_img_ext = Image.open(io.BytesIO(ref_bytes_ext))
+                    render_clickable_image(file_bytes_to_b64(ref_bytes_ext), "Ảnh tham chiếu Ngoại thất", 1)
                 else: ref_img_ext = None
 
             extra_notes_ext = st.text_area("Mô tả hoặc yêu cầu bổ sung:", placeholder="Ví dụ: biệt thự 3 tầng, thêm cây cảnh nhiệt đới...", height=75, key=f"notes_ext_{st.session_state.uploader_key_ext}")
 
-    # Xử lý API Ngoại thất
     if analyze_btn_ext:
         if not api_key_ext: st.error("Vui lòng nhập API Key!")
         elif not sketch_file_ext: st.warning("Vui lòng tải lên ảnh phác thảo Ngoại thất!")
@@ -526,11 +518,8 @@ with tab_ext:
 # -------------------- TAB 2: NỘI THẤT --------------------
 with tab_int:
     col_left_i, col_main_i, col_right_i = st.columns([1.0, 1.5, 1.0], gap="medium")
-
-    # Kiểm tra trạng thái "Chỉ lấy sáng" của Nội thất
     is_disabled_int = st.session_state.get("only_light_int", False)
 
-    # Cột trái Nội thất
     with col_left_i:
         with st.expander("⚙️ Cấu hình API & AI Model (Nội thất)", expanded=True):
             with st.container(border=True):
@@ -555,7 +544,6 @@ with tab_int:
                 light_int_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_int_options, index=2, key="light_int2", disabled=is_disabled_int)
                 film_int_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_int_options, index=2, key="film_int2", disabled=is_disabled_int)
 
-    # Cột giữa Nội thất
     with col_main_i:
         h_col_i, b_col_i, s_col_i, c_col_i = st.columns([2.0, 2.0, 0.8, 0.8], vertical_alignment="center")
         with h_col_i: st.markdown('<p class="custom-header-title">Kết quả Prompt</p>', unsafe_allow_html=True)
@@ -576,15 +564,15 @@ with tab_int:
         prompt2_text_int = st.session_state.p2_res_int if st.session_state.p2_res_int else "Chưa có kết quả Nội thất PA 2..."
         render_prompt_card("Phương án 2 (Nội thất):", prompt2_text_int, "p2_int")
 
-    # Cột phải Nội thất
     with col_right_i:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
             with st.container(border=True):
                 st.markdown("**Ảnh phác thảo Nội thất / CAD:**")
                 sketch_file_int = st.file_uploader("Tải ảnh phác thảo Nội thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"sketch_up_int_{st.session_state.uploader_key_int}")
                 if sketch_file_int:
-                    sketch_img_int = Image.open(sketch_file_int)
-                    render_clickable_image(image_to_b64(sketch_img_int), "Ảnh phác thảo Nội thất", 2)
+                    sketch_bytes_int = sketch_file_int.getvalue()
+                    sketch_img_int = Image.open(io.BytesIO(sketch_bytes_int))
+                    render_clickable_image(file_bytes_to_b64(sketch_bytes_int), "Ảnh phác thảo Nội thất", 2)
                 else: sketch_img_int = None
 
             with st.container(border=True):
@@ -593,13 +581,13 @@ with tab_int:
                 with r_head2_i: only_light_mode_int = st.checkbox("Chỉ lấy sáng", value=False, key="only_light_int")
                 ref_file_int = st.file_uploader("Tải ảnh tham chiếu Nội thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"ref_up_int_{st.session_state.uploader_key_int}")
                 if ref_file_int:
-                    ref_img_int = Image.open(ref_file_int)
-                    render_clickable_image(image_to_b64(ref_img_int), "Ảnh tham chiếu Nội thất", 3)
+                    ref_bytes_int = ref_file_int.getvalue()
+                    ref_img_int = Image.open(io.BytesIO(ref_bytes_int))
+                    render_clickable_image(file_bytes_to_b64(ref_bytes_int), "Ảnh tham chiếu Nội thất", 3)
                 else: ref_img_int = None
 
             extra_notes_int = st.text_area("Mô tả hoặc yêu cầu bổ sung:", placeholder="Ví dụ: phòng khách hiện đại, sofa da bò, đèn chùm cao cấp...", height=75, key=f"notes_int_{st.session_state.uploader_key_int}")
 
-    # Xử lý API Nội thất
     if analyze_btn_int:
         if not api_key_int: st.error("Vui lòng nhập API Key!")
         elif not sketch_file_int: st.warning("Vui lòng tải lên ảnh phác thảo Nội thất!")

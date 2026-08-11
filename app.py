@@ -115,7 +115,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
             .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.9rem; }}
             .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 3px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 275px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 235px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -149,7 +149,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-  components.html(html_code, height=315)
+  components.html(html_code, height=275)
 
 
 # Hiển thị ảnh xem trước
@@ -228,13 +228,15 @@ div[data-testid="stHeader"] *, header[data-testid="stHeader"] * {
 
 section[data-testid="stSidebar"] { display: none !important; }
 
+/* Căn chỉnh khoảng cách padding để giao diện nằm gọn hoàn toàn trong vùng màu đỏ giữa header trên và footer dưới */
 .block-container {
-    padding-top: 3.2rem !important;
-    padding-bottom: 0.2rem !important;
+    padding-top: 3.0rem !important;
+    padding-bottom: 3.2rem !important;
     padding-left: 1.0rem !important;
     padding-right: 1.0rem !important;
     max-width: 100% !important;
-    height: calc(100vh - 0.5rem) !important;
+    height: 100vh !important;
+    box-sizing: border-box !important;
     overflow: hidden !important;
 }
 
@@ -246,7 +248,7 @@ div[data-baseweb="tab-list"] {
 button[data-baseweb="tab"] {
     font-size: 1.05rem !important;
     font-weight: 700 !important;
-    padding: 0.5rem 1.6rem !important;
+    padding: 0.4rem 1.6rem !important;
     border-radius: 8px 8px 0 0 !important;
     cursor: pointer !important;
     pointer-events: auto !important;
@@ -259,6 +261,7 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
+/* Khung Expander 2 bên khớp chính xác chiều cao khu vực màu đỏ */
 div[data-testid="stExpander"] {
     background-color: #1e1e24 !important;
     border: 1px solid #363945 !important;
@@ -266,9 +269,9 @@ div[data-testid="stExpander"] {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
 }
 div[data-testid="stExpander"]:has(details[open]) {
-    height: calc(100vh - 7.6rem) !important;
-    min-height: calc(100vh - 7.6rem) !important;
-    max-height: calc(100vh - 7.6rem) !important;
+    height: calc(100vh - 9.8rem) !important;
+    min-height: calc(100vh - 9.8rem) !important;
+    max-height: calc(100vh - 9.8rem) !important;
     display: flex !important;
     flex-direction: column !important;
 }
@@ -872,7 +875,7 @@ with tab_int:
       )
     with c_col_i:
       clear_btn_int = st.button(
-          "🗑️ Xóa", use_container_width=True, key="btn_clr_int"
+          "🗑️ Xóa", use_container_width=True, key="btn_clr_ext"
       )
 
     if stop_btn_int:

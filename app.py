@@ -342,22 +342,46 @@ if st.session_state.get("show_dog_modal", False):
   )
 
 # ==================== DANH SÁCH TÙY CHỌN ====================
+# Kịch bản ánh sáng Ngoại thất đầy đủ (7 tùy chọn)
 lighting_ext_options = [
-    "A1 - Ban ngày trong trẻo (Pure Daylight)",
-    "A2 - Hoàng hôn ấm áp (Golden Hour)",
-    "A3 - Chạng vạng lên đèn (Twilight 3000K)",
-    "A4 - Hỗn hợp Môi trường (Hybrid Lighting)",
-]
-film_ext_options = [
-    "B0 - None (Không sử dụng hiệu ứng màu)",
-    "B1 - Fujifilm Classic Chrome",
-    "B2 - Fujifilm Classic Negative",
-    "B3 - Kodak Portra 400",
-    "B4 - CineStill 800T",
-    "B5 - Hasselblad + Tilt-Shift",
-    "B6 - Black Pro-Mist 1/4",
+    "A1 - Nắng sáng sớm trong trẻo (Bright Early Morning Sun)",
+    (
+        "A2 - Nắng trưa rực rỡ & Bóng đổ sắc nét (High Noon Direct Sun & Sharp"
+        " Shadows)"
+    ),
+    (
+        "A3 - Ngày mây / Ánh sáng tán xạ (Overcast Diffused Light - True"
+        " Material Focus)"
+    ),
+    "A4 - Hoàng hôn rực rỡ / Giờ vàng (Golden Hour Warm Sunset)",
+    "A5 - Chạng vạng lên đèn kiến trúc (Blue Hour & Facade Lighting)",
+    (
+        "A6 - Đêm huyền bí & Điểm nhấn cảnh quan (Moody Night & Landscape"
+        " Spotlights)"
+    ),
+    "A7 - Sau mưa / Sân ướt phản chiếu (Post-Rain Wet Surface Reflections)",
 ]
 
+# Hiệu ứng hình ảnh & Nhiếp ảnh Ngoại thất chuyên sâu (6 tùy chọn)
+film_ext_options = [
+    "B0 - None (Màu nguyên bản công trình)",
+    (
+        "B1 - Tạp chí Kiến trúc Cao cấp (Architectural Digest - Clean & High"
+        " Contrast)"
+    ),
+    (
+        "B2 - Nhiếp ảnh Tạp chí Hiện đại (Fujifilm Classic Chrome - Architectural"
+        " Tone)"
+    ),
+    "B3 - Tông Ấm Cổ điển (Kodak Portra 400 - Warm Vintage Vibe)",
+    "B4 - Đêm Điện ảnh Đô thị (CineStill 800T - Night Halation & Glow)",
+    (
+        "B5 - Khóa Góc Đứng Chuyên dụng (Hasselblad Tilt-Shift - Zero"
+        " Perspective Distortion)"
+    ),
+]
+
+# Kịch bản ánh sáng Nội thất đầy đủ (10 tùy chọn)
 lighting_int_options = [
     "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
     "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
@@ -380,6 +404,7 @@ lighting_int_options = [
     "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)",
 ]
 
+# Hiệu ứng hình ảnh & Nhiếp ảnh Nội thất (8 tùy chọn)
 film_int_options = [
     "F0 - None (Màu nguyên bản chất liệu)",
     (
@@ -553,7 +578,7 @@ with tab_ext:
         light_ext_2 = st.selectbox(
             "Kịch bản ánh sáng (PA 2):",
             lighting_ext_options,
-            index=1,
+            index=3,
             key="light_ext2",
             disabled=is_disabled_ext,
         )
@@ -563,7 +588,7 @@ with tab_ext:
         film_ext_2 = st.selectbox(
             "Hiệu ứng màu sắc (PA 2):",
             film_ext_options,
-            index=3,
+            index=1,
             key="film_ext2",
             disabled=is_disabled_ext,
         )

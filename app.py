@@ -79,7 +79,7 @@ def get_transparent_dog_b64():
     except Exception:
         return None
 
-# Hiển thị khung Prompt (Tối ưu chiều cao vừa khít cột giữa)
+# Hiển thị khung Prompt
 def render_prompt_card(title: str, text: str, box_id: str):
     escaped_text = html.escape(text) if text else ""
     html_code = f"""
@@ -217,7 +217,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     overflow: hidden !important;
 }
 
-/* Nút Tabs - Nâng z-index đảm bảo bấm được 100% */
+/* Nút Tabs */
 div[data-baseweb="tab-list"] {
     z-index: 999999 !important;
     position: relative !important;
@@ -433,6 +433,9 @@ secret_api_key = st.secrets.get("GEMINI_API_KEY", "")
 with tab_ext:
     col_left_e, col_main_e, col_right_e = st.columns([1.0, 1.5, 1.0], gap="medium")
 
+    # Kiểm tra trạng thái "Chỉ lấy sáng" của Ngoại thất
+    is_disabled_ext = st.session_state.get("only_light_ext", False)
+
     # Cột trái Ngoại thất
     with col_left_e:
         with st.expander("⚙️ Cấu hình API & AI Model (Ngoại thất)", expanded=True):
@@ -450,13 +453,13 @@ with tab_ext:
 
             with st.container(border=True):
                 st.markdown("**2. Phương án 1 (Ngoại thất)**")
-                light_ext_1 = st.selectbox("Kịch bản ánh sáng (PA 1):", lighting_ext_options, key="light_ext1")
-                film_ext_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_ext_options, index=1, key="film_ext1")
+                light_ext_1 = st.selectbox("Kịch bản ánh sáng (PA 1):", lighting_ext_options, key="light_ext1", disabled=is_disabled_ext)
+                film_ext_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_ext_options, index=1, key="film_ext1", disabled=is_disabled_ext)
 
             with st.container(border=True):
                 st.markdown("**3. Phương án 2 (Ngoại thất)**")
-                light_ext_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_ext_options, index=1, key="light_ext2")
-                film_ext_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_ext_options, index=3, key="film_ext2")
+                light_ext_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_ext_options, index=1, key="light_ext2", disabled=is_disabled_ext)
+                film_ext_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_ext_options, index=3, key="film_ext2", disabled=is_disabled_ext)
 
     # Cột giữa Ngoại thất
     with col_main_e:
@@ -524,6 +527,9 @@ with tab_ext:
 with tab_int:
     col_left_i, col_main_i, col_right_i = st.columns([1.0, 1.5, 1.0], gap="medium")
 
+    # Kiểm tra trạng thái "Chỉ lấy sáng" của Nội thất
+    is_disabled_int = st.session_state.get("only_light_int", False)
+
     # Cột trái Nội thất
     with col_left_i:
         with st.expander("⚙️ Cấu hình API & AI Model (Nội thất)", expanded=True):
@@ -541,13 +547,13 @@ with tab_int:
 
             with st.container(border=True):
                 st.markdown("**2. Phương án 1 (Nội thất)**")
-                light_int_1 = st.selectbox("Kịch bản ánh sáng (PA 1):", lighting_int_options, index=1, key="light_int1")
-                film_int_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_int_options, index=1, key="film_int1")
+                light_int_1 = st.selectbox("Kịch bản ánh sáng (PA 1):", lighting_int_options, index=1, key="light_int1", disabled=is_disabled_int)
+                film_int_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_int_options, index=1, key="film_int1", disabled=is_disabled_int)
 
             with st.container(border=True):
                 st.markdown("**3. Phương án 2 (Nội thất)**")
-                light_int_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_int_options, index=2, key="light_int2")
-                film_int_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_int_options, index=2, key="film_int2")
+                light_int_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_int_options, index=2, key="light_int2", disabled=is_disabled_int)
+                film_int_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_int_options, index=2, key="film_int2", disabled=is_disabled_int)
 
     # Cột giữa Nội thất
     with col_main_i:

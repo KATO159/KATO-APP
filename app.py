@@ -79,7 +79,7 @@ def get_transparent_dog_b64():
     except Exception:
         return None
 
-# Hiển thị khung Prompt (Thu nhỏ chiều cao để vừa khít 1 màn hình)
+# Hiển thị khung Prompt (Tối ưu chiều cao vừa khít cột giữa)
 def render_prompt_card(title: str, text: str, box_id: str):
     escaped_text = html.escape(text) if text else ""
     html_code = f"""
@@ -94,7 +94,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
             .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.9rem; }}
             .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 3px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.7rem; height: 215px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 275px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -128,9 +128,9 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-    components.html(html_code, height=255)
+    components.html(html_code, height=315)
 
-# Hiển thị ảnh xem trước bấm đè hoặc xóa X (Tối ưu chiều cao)
+# Hiển thị ảnh xem trước
 def render_clickable_image(img_b64, caption, uploader_index):
     html_code = f"""
     <!DOCTYPE html>
@@ -182,45 +182,56 @@ def render_clickable_image(img_b64, caption, uploader_index):
     """
     components.html(html_code, height=165)
 
-# CSS KHÓA CỨNG MÀN HÌNH & HIỂN THỊ LẠI HEADER NÚT THÀNH PHẦN GÓC TRÊN
+# CSS KHÓA KHUNG VỪA MÀN HÌNH & XỬ LÝ CLICK TAB
 st.markdown("""
 <style>
-/* Khóa cuộn trang web toàn màn hình */
+/* Khóa cuộn trang toàn màn hình */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     overflow: hidden !important;
     height: 100vh !important;
     max-height: 100vh !important;
 }
 
-/* Hiển thị lại header chứa nút thành phần góc trên (Menu, Manage app) nhưng nền trong suốt */
+/* Cho phép click xuyên qua header nền trong suốt */
 div[data-testid="stHeader"], header[data-testid="stHeader"] {
     display: flex !important;
     background: transparent !important;
-    z-index: 99999 !important;
-    pointer-events: auto !important;
+    z-index: 1000 !important;
+    pointer-events: none !important;
     height: 2.8rem !important;
+}
+div[data-testid="stHeader"] *, header[data-testid="stHeader"] * {
+    pointer-events: auto !important;
 }
 
 section[data-testid="stSidebar"] { display: none !important; }
 
 /* Căn chỉnh khoảng cách padding tổng thể */
 .block-container {
-    padding-top: 0.2rem !important;
+    padding-top: 3.2rem !important;
     padding-bottom: 0.2rem !important;
     padding-left: 1.0rem !important;
     padding-right: 1.0rem !important;
     max-width: 100% !important;
-    height: calc(100vh - 3.0rem) !important;
+    height: calc(100vh - 0.5rem) !important;
     overflow: hidden !important;
 }
 
-/* Nút Tabs */
+/* Nút Tabs - Nâng z-index đảm bảo bấm được 100% */
+div[data-baseweb="tab-list"] {
+    z-index: 999999 !important;
+    position: relative !important;
+    pointer-events: auto !important;
+}
 button[data-baseweb="tab"] {
     font-size: 1.05rem !important;
     font-weight: 700 !important;
-    padding: 0.4rem 1.5rem !important;
+    padding: 0.5rem 1.6rem !important;
     border-radius: 8px 8px 0 0 !important;
     cursor: pointer !important;
+    pointer-events: auto !important;
+    z-index: 999999 !important;
+    position: relative !important;
 }
 button[aria-selected="true"] {
     background-color: #262730 !important;
@@ -228,7 +239,7 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Khung Expander khớp chiều cao màn hình */
+/* Khung Expander 2 bên khớp chiều cao màn hình */
 div[data-testid="stExpander"] {
     background-color: #1e1e24 !important;
     border: 1px solid #363945 !important;
@@ -236,9 +247,9 @@ div[data-testid="stExpander"] {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
 }
 div[data-testid="stExpander"]:has(details[open]) {
-    height: calc(100vh - 7.2rem) !important;
-    min-height: calc(100vh - 7.2rem) !important;
-    max-height: calc(100vh - 7.2rem) !important;
+    height: calc(100vh - 7.6rem) !important;
+    min-height: calc(100vh - 7.6rem) !important;
+    max-height: calc(100vh - 7.6rem) !important;
     display: flex !important;
     flex-direction: column !important;
 }

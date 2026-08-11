@@ -1,90 +1,109 @@
+import base64
+import html
+import io
+import os
+import re
+from PIL import Image
+import google.generativeai as genai
 import streamlit as st
 import streamlit.components.v1 as components
-import google.generativeai as genai
-from PIL import Image
-import re, os, io, base64, html
 
 # Cấu hình trang Streamlit
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
 # Khởi tạo session_state cho cả Ngoại thất và Nội thất
 for key in ["p1_res_ext", "p2_res_ext", "p1_res_int", "p2_res_int"]:
-    if key not in st.session_state:
-        st.session_state[key] = None
+  if key not in st.session_state:
+    st.session_state[key] = None
 
 if "uploader_key_ext" not in st.session_state:
-    st.session_state.uploader_key_ext = 0
+  st.session_state.uploader_key_ext = 0
 if "uploader_key_int" not in st.session_state:
-    st.session_state.uploader_key_int = 0
+  st.session_state.uploader_key_int = 0
 if "show_dog_modal" not in st.session_state:
-    st.session_state.show_dog_modal = False
+  st.session_state.show_dog_modal = False
+
 
 # Hàm làm sạch văn bản
 def clean_prompt_text(text: str) -> str:
-    if not text:
-        return ""
-    lines = [line.rstrip() for line in text.splitlines()]
-    return "\n".join(lines).strip()
+  if not text:
+    return ""
+  lines = [line.rstrip() for line in text.splitlines()]
+  return "\n".join(lines).strip()
+
 
 # CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64
 @st.cache_data(show_spinner=False)
 def file_bytes_to_b64(file_bytes: bytes) -> str:
-    img = Image.open(io.BytesIO(file_bytes))
-    buffered = io.BytesIO()
-    if img.mode in ("RGBA", "P"):
-        img_conv = img.convert("RGBA")
-        img_conv.save(buffered, format="PNG")
-    else:
-        img_conv = img.convert("RGB")
-        img_conv.save(buffered, format="JPEG", quality=85)
-    return base64.b64encode(buffered.getvalue()).decode()
+  img = Image.open(io.BytesIO(file_bytes))
+  buffered = io.BytesIO()
+  if img.mode in ("RGBA", "P"):
+    img_conv = img.convert("RGBA")
+    img_conv.save(buffered, format="PNG")
+  else:
+    img_conv = img.convert("RGB")
+    img_conv.save(buffered, format="JPEG", quality=85)
+  return base64.b64encode(buffered.getvalue()).decode()
+
 
 # CACHE HÀM TẠO ẢNH CHÚ CHÓ
 @st.cache_data(show_spinner=False)
 def get_transparent_dog_b64():
-    target_file = None
-    explicit_files = [
-        "image_45819f.png", "image_45819f.jpg", "image_45819f.jpeg",
-        "dog.png", "dog.jpg", "dog.jpeg", "chihuahua.png", "chihuahua.jpg"
-    ]
-    for f in explicit_files:
-        if os.path.exists(f):
-            target_file = f
-            break
-            
-    if not target_file:
-        for f in os.listdir("."):
-            if f.lower().endswith((".png", ".jpg", ".jpeg")):
-                if "458" in f.lower() or "dog" in f.lower() or "chihuahua" in f.lower() or f.startswith("image_"):
-                    target_file = f
-                    break
+  target_file = None
+  explicit_files = [
+      "image_45819f.png",
+      "image_45819f.jpg",
+      "image_45819f.jpeg",
+      "dog.png",
+      "dog.jpg",
+      "dog.jpeg",
+      "chihuahua.png",
+      "chihuahua.jpg",
+  ]
+  for f in explicit_files:
+    if os.path.exists(f):
+      target_file = f
+      break
 
-    if not target_file:
-        return None
-        
-    try:
-        img = Image.open(target_file).convert("RGBA")
-        datas = img.getdata()
-        new_data = []
-        for item in datas:
-            r, g, b, a = item
-            if g > 100 and g > r * 1.1 and g > b * 1.1:
-                new_data.append((0, 0, 0, 0))
-            elif g > 140 and g > r and g > b:
-                new_data.append((0, 0, 0, 0))
-            else:
-                new_data.append(item)
-        img.putdata(new_data)
-        buffered = io.BytesIO()
-        img.save(buffered, format="PNG")
-        return base64.b64encode(buffered.getvalue()).decode()
-    except Exception:
-        return None
+  if not target_file:
+    for f in os.listdir("."):
+      if f.lower().endswith((".png", ".jpg", ".jpeg")):
+        if (
+            "458" in f.lower()
+            or "dog" in f.lower()
+            or "chihuahua" in f.lower()
+            or f.startswith("image_")
+        ):
+          target_file = f
+          break
+
+  if not target_file:
+    return None
+
+  try:
+    img = Image.open(target_file).convert("RGBA")
+    datas = img.getdata()
+    new_data = []
+    for item in datas:
+      r, g, b, a = item
+      if g > 100 and g > r * 1.1 and g > b * 1.1:
+        new_data.append((0, 0, 0, 0))
+      elif g > 140 and g > r and g > b:
+        new_data.append((0, 0, 0, 0))
+      else:
+        new_data.append(item)
+    img.putdata(new_data)
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
+  except Exception:
+    return None
+
 
 # Hiển thị khung Prompt
 def render_prompt_card(title: str, text: str, box_id: str):
-    escaped_text = html.escape(text) if text else ""
-    html_code = f"""
+  escaped_text = html.escape(text) if text else ""
+  html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -130,11 +149,12 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-    components.html(html_code, height=315)
+  components.html(html_code, height=315)
+
 
 # Hiển thị ảnh xem trước
 def render_clickable_image(img_b64, caption, uploader_index):
-    html_code = f"""
+  html_code = f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -182,10 +202,12 @@ def render_clickable_image(img_b64, caption, uploader_index):
     </body>
     </html>
     """
-    components.html(html_code, height=165)
+  components.html(html_code, height=165)
+
 
 # CSS GIAO DIỆN HỆ THỐNG
-st.markdown("""
+st.markdown(
+    """
 <style>
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     overflow: hidden !important;
@@ -276,15 +298,18 @@ button[kind="secondary"]:hover { background-color: #c82333 !important; }
 div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button { background-color: #495057 !important; color: #ffffff !important; border: none !important; height: 36px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.9rem !important; }
 div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button:hover { background-color: #343a40 !important; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # THÔNG BÁO CHÚ CHÓ
 if st.session_state.get("show_dog_modal", False):
-    st.session_state.show_dog_modal = False
-    dog_b64 = get_transparent_dog_b64()
-    img_src = f"data:image/png;base64,{dog_b64}" if dog_b64 else ""
+  st.session_state.show_dog_modal = False
+  dog_b64 = get_transparent_dog_b64()
+  img_src = f"data:image/png;base64,{dog_b64}" if dog_b64 else ""
 
-    components.html(f"""
+  components.html(
+      f"""
         <script>
         (function() {{
             var parentDoc = window.parent.document;
@@ -312,14 +337,16 @@ if st.session_state.get("show_dog_modal", False):
             }}, 2000);
         }})();
         </script>
-    """, height=0)
+    """,
+      height=0,
+  )
 
 # ==================== DANH SÁCH TÙY CHỌN ====================
 lighting_ext_options = [
     "A1 - Ban ngày trong trẻo (Pure Daylight)",
     "A2 - Hoàng hôn ấm áp (Golden Hour)",
     "A3 - Chạng vạng lên đèn (Twilight 3000K)",
-    "A4 - Hỗn hợp Môi trường (Hybrid Lighting)"
+    "A4 - Hỗn hợp Môi trường (Hybrid Lighting)",
 ]
 film_ext_options = [
     "B0 - None (Không sử dụng hiệu ứng màu)",
@@ -328,7 +355,7 @@ film_ext_options = [
     "B3 - Kodak Portra 400",
     "B4 - CineStill 800T",
     "B5 - Hasselblad + Tilt-Shift",
-    "B6 - Black Pro-Mist 1/4"
+    "B6 - Black Pro-Mist 1/4",
 ]
 
 # Kịch bản ánh sáng Nội thất đầy đủ 10 tùy chọn chuyên sâu
@@ -336,51 +363,111 @@ lighting_int_options = [
     "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
     "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
     "I3 - Luồng nắng xuyên khe (Volumetric God Rays)",
-    "I4 - Trời u uất / Ánh sáng tán xạ đều (Overcast Ambient Light - Material Focus)",
+    (
+        "I4 - Trời u uất / Ánh sáng tán xạ đều (Overcast Ambient Light -"
+        " Material Focus)"
+    ),
     "I5 - Đèn ấm thư giãn (Warm Cozy Mood 2700K - 3000K)",
     "I6 - Đèn trung tính hiện đại (Neutral Daylight 4000K - 4500K)",
-    "I7 - Đèn LED hắt khe & Ray âm trần (Modern Cove LED & Magnetic Track Lights)",
-    "I8 - Hỗn hợp Hoàng hôn & Đèn trong nhà (Golden Hour & Indoor Warm Lights)",
+    (
+        "I7 - Đèn LED hắt khe & Ray âm trần (Modern Cove LED & Magnetic Track"
+        " Lights)"
+    ),
+    (
+        "I8 - Hỗn hợp Hoàng hôn & Đèn trong nhà (Golden Hour & Indoor Warm"
+        " Lights)"
+    ),
     "I9 - Tối nghệ thuật & Đèn rọi điểm nhấn (Moody Dark & Accent Spotlights)",
-    "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)"
+    "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)",
 ]
 
+# Hiệu ứng hình ảnh & Nhiếp ảnh chuyên sâu cho Nội thất (8 tùy chọn)
 film_int_options = [
-    "F0 - None (Không sử dụng hiệu ứng màu)",
-    "F1 - Tạp chí kiến trúc cao cấp (Architectural Digest - Clean & Bright)",
-    "F2 - Tông gỗ ấm áp (Kodak Portra 400 - Warm Wood Tones)",
-    "F3 - Tông mộc & Pastel dịu nhẹ (Fuji Pro 400H - Soft & Airy)",
-    "F4 - Sang trọng & Nghệ thuật (Cinematic Moody & Deep Shadows)"
+    "F0 - None (Màu nguyên bản chất liệu)",
+    (
+        "F1 - Tạp chí Sáng trong (Architectural Digest - Clean & Bright"
+        " Showcase)"
+    ),
+    (
+        "F2 - Tông Gỗ & Đất Ấm áp (Kodak Portra 400 - Warm Wood & Earth Tones)"
+    ),
+    "F3 - Mộc mạc & Creamy (Fuji Pro 400H - Soft & Airy Pastel)",
+    "F4 - Sang trọng Điện ảnh (Cinematic Moody - Deep Shadows & Contrast)",
+    "F5 - Ấm áp Cổ điển (Kodak Gold 200 - Vintage Warm Gold Tone)",
+    "F6 - Kính lọc Tán mờ Đèn (Black Pro-Mist 1/4 - Soft Glow Lights)",
+    (
+        "F7 - Chi tiết Siêu nét Medium Format (Hasselblad - Zero Distortion &"
+        " High Texture)"
+    ),
 ]
+
 
 # HÀM XỬ LÝ GỌI API AI GEMINI
-def process_gemini_analysis(api_key, selected_model, light_opt1, film_opt1, light_opt2, film_opt2, sketch_img, ref_img, extra_notes, only_light_mode, is_interior=False):
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(selected_model)
+def process_gemini_analysis(
+    api_key,
+    selected_model,
+    light_opt1,
+    film_opt1,
+    light_opt2,
+    film_opt2,
+    sketch_img,
+    ref_img,
+    extra_notes,
+    only_light_mode,
+    is_interior=False,
+):
+  genai.configure(api_key=api_key)
+  model = genai.GenerativeModel(selected_model)
 
-    ref_instruction = ""
-    if ref_img:
-        if only_light_mode:
-            ref_instruction = "LƯU Ý ĐẶC BIỆT CHO @ảnh tham chiếu: CHỈ TRÍCH XUẤT duy nhất kịch bản ánh sáng, góc nắng đổ bóng, nhiệt độ màu và không khí ánh sáng từ **@ảnh tham chiếu**. BẢO TỒN HOÀN TOÀN toàn bộ vật liệu, màu sắc bề mặt và bối cảnh từ **@ảnh phác thảo**."
-        else:
-            ref_instruction = "Đối với **@ảnh tham chiếu**, trích xuất toàn bộ bối cảnh môi trường xung quanh, kịch bản ánh sáng và các bề mặt vật liệu/bảng màu chính để áp lên khung nét của **@ảnh phác thảo**."
+  ref_instruction = ""
+  if ref_img:
+    if only_light_mode:
+      ref_instruction = (
+          "LƯU Ý ĐẶC BIỆT CHO @ảnh tham chiếu: CHỈ TRÍCH XUẤT duy nhất kịch bản"
+          " ánh sáng, góc nắng đổ bóng, nhiệt độ màu và không khí ánh sáng từ"
+          " **@ảnh tham chiếu**. BẢO TỒN HOÀN TOÀN toàn bộ vật liệu, màu sắc bề"
+          " mặt và bối cảnh từ **@ảnh phác thảo**."
+      )
+    else:
+      ref_instruction = (
+          "Đối với **@ảnh tham chiếu**, trích xuất toàn bộ bối cảnh môi trường"
+          " xung quanh, kịch bản ánh sáng và các bề mặt vật liệu/bảng màu chính"
+          " để áp lên khung nét của **@ảnh phác thảo**."
+      )
 
-    clean_light1 = light_opt1.split(" - ")[1] if " - " in light_opt1 else light_opt1
-    clean_film1 = film_opt1.split(" - ")[1] if " - " in film_opt1 else film_opt1
-    film_text1 = f"kết hợp hiệu ứng {clean_film1}" if ("B0 - None" not in film_opt1 and "F0 - None" not in film_opt1) else "giữ màu sắc tự nhiên chân thực, không áp hiệu ứng màu phim"
+  clean_light1 = (
+      light_opt1.split(" - ")[1] if " - " in light_opt1 else light_opt1
+  )
+  clean_film1 = film_opt1.split(" - ")[1] if " - " in film_opt1 else film_opt1
+  film_text1 = (
+      f"kết hợp hiệu ứng {clean_film1}"
+      if ("B0 - None" not in film_opt1 and "F0 - None" not in film_opt1)
+      else "giữ màu sắc tự nhiên chân thực, không áp hiệu ứng màu phim"
+  )
 
-    clean_light2 = light_opt2.split(" - ")[1] if " - " in light_opt2 else light_opt2
-    clean_film2 = film_opt2.split(" - ")[1] if " - " in film_opt2 else film_opt2
-    film_text2 = f"kết hợp hiệu ứng {clean_film2}" if ("B0 - None" not in film_opt2 and "F0 - None" not in film_opt2) else "giữ màu sắc tự nhiên chân thực, không áp hiệu ứng màu phim"
+  clean_light2 = (
+      light_opt2.split(" - ")[1] if " - " in light_opt2 else light_opt2
+  )
+  clean_film2 = film_opt2.split(" - ")[1] if " - " in film_opt2 else film_opt2
+  film_text2 = (
+      f"kết hợp hiệu ứng {clean_film2}"
+      if ("B0 - None" not in film_opt2 and "F0 - None" not in film_opt2)
+      else "giữ màu sắc tự nhiên chân thực, không áp hiệu ứng màu phim"
+  )
 
-    domain_str = "NỘI THẤT" if is_interior else "KIẾN TRÚC NGOẠI THẤT"
-    detail_str = (
-        "bố cục không gian nội thất, góc chụp (toàn cảnh/góc trung), đồ nội thất (bàn, ghế, sofa, tủ, đèn trang trí), từng chất liệu bề mặt (gỗ, đá, vải, kim loại, kính, rèm...) và ánh sáng môi trường trong phòng"
-        if is_interior else
-        "hình khối kiến trúc, số tầng, góc quay (mặt tiền, góc chéo 3/4...), từng chất liệu bề mặt các tầng và bối cảnh cây xanh đô thị"
-    )
+  domain_str = "NỘI THẤT" if is_interior else "KIẾN TRÚC NGOẠI THẤT"
+  detail_str = (
+      "bố cục không gian nội thất, góc chụp (toàn cảnh/góc trung), đồ nội thất"
+      " (bàn, ghế, sofa, tủ, đèn trang trí), từng chất liệu bề mặt (gỗ, đá, vải,"
+      " kim loại, kính, rèm...) và ánh sáng môi trường trong phòng"
+      if is_interior
+      else (
+          "hình khối kiến trúc, số tầng, góc quay (mặt tiền, góc chéo 3/4...),"
+          " từng chất liệu bề mặt các tầng và bối cảnh cây xanh đô thị"
+      )
+  )
 
-    system_instruction = f"""
+  system_instruction = f"""
     Bạn là một chuyên gia phân tích {domain_str} và diễn họa 3D. 
     Hãy nhìn vào hình ảnh phác thảo được cung cấp và tạo ra CÁC CÂU LỆNH (prompt) mô tả chi tiết bằng TIẾNG VIỆT để đưa vào phần mềm sinh ảnh Flow.
 
@@ -409,22 +496,25 @@ def process_gemini_analysis(api_key, selected_model, light_opt1, film_opt1, ligh
     Không thêm lời dẫn hay giải thích thừa ngoài định dạng trên.
     """
 
-    content_inputs = [system_instruction, sketch_img]
-    if ref_img: content_inputs.append(ref_img)
-    if extra_notes: content_inputs.append(f"Ghi chú bổ sung từ người dùng: {extra_notes}")
+  content_inputs = [system_instruction, sketch_img]
+  if ref_img:
+    content_inputs.append(ref_img)
+  if extra_notes:
+    content_inputs.append(f"Ghi chú bổ sung từ người dùng: {extra_notes}")
 
-    response = model.generate_content(content_inputs)
-    result_text = response.text.strip()
+  response = model.generate_content(content_inputs)
+  result_text = response.text.strip()
 
-    if "===PA_SPLIT===" in result_text:
-        parts = result_text.split("===PA_SPLIT===")
-        p1 = clean_prompt_text(parts[0])
-        p2 = clean_prompt_text(parts[1])
-    else:
-        p1 = clean_prompt_text(result_text)
-        p2 = None
+  if "===PA_SPLIT===" in result_text:
+    parts = result_text.split("===PA_SPLIT===")
+    p1 = clean_prompt_text(parts[0])
+    p2 = clean_prompt_text(parts[1])
+  else:
+    p1 = clean_prompt_text(result_text)
+    p2 = None
 
-    return p1, p2
+  return p1, p2
+
 
 # ==================== KHỞI TẠO TABS ====================
 tab_ext, tab_int = st.tabs(["🏛️ NGOẠI THẤT", "🛋️ NỘI THẤT"])
@@ -434,179 +524,384 @@ secret_api_key = st.secrets.get("GEMINI_API_KEY", "")
 
 # -------------------- TAB 1: NGOẠI THẤT --------------------
 with tab_ext:
-    col_left_e, col_main_e, col_right_e = st.columns([1.0, 1.5, 1.0], gap="medium")
-    is_disabled_ext = st.session_state.get("only_light_ext", False)
+  col_left_e, col_main_e, col_right_e = st.columns([1.0, 1.5, 1.0], gap="medium")
+  is_disabled_ext = st.session_state.get("only_light_ext", False)
 
-    with col_left_e:
-        with st.expander("⚙️ Cấu hình API & AI Model (Ngoại thất)", expanded=True):
-            with st.container(border=True):
-                st.markdown("**1. API & Model AI**")
-                user_api_key_ext = st.text_input(
-                    "Gemini API Key (Tùy chọn):", type="password",
-                    placeholder="Đã dùng Key hệ thống bí mật" if secret_api_key else "Nhập API Key...",
-                    key="api_key_ext_input"
-                )
-                api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
-                if secret_api_key and not user_api_key_ext:
-                    st.caption("🟢 **Trạng thái:** Đã kết nối API Key hệ thống.")
-                selected_model_ext = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro"], key="model_ext")
+  with col_left_e:
+    with st.expander("⚙️ Cấu hình API & AI Model (Ngoại thất)", expanded=True):
+      with st.container(border=True):
+        st.markdown("**1. API & Model AI**")
+        user_api_key_ext = st.text_input(
+            "Gemini API Key (Tùy chọn):",
+            type="password",
+            placeholder=(
+                "Đã dùng Key hệ thống bí mật"
+                if secret_api_key
+                else "Nhập API Key..."
+            ),
+            key="api_key_ext_input",
+        )
+        api_key_ext = (
+            user_api_key_ext.strip()
+            if user_api_key_ext.strip()
+            else secret_api_key
+        )
+        if secret_api_key and not user_api_key_ext:
+          st.caption("🟢 **Trạng thái:** Đã kết nối API Key hệ thống.")
+        selected_model_ext = st.selectbox(
+            "Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro"], key="model_ext"
+        )
 
-            with st.container(border=True):
-                st.markdown("**2. Kịch bản Ánh sáng**")
-                light_ext_1 = st.selectbox("Kịch bản ánh sáng (PA 1):", lighting_ext_options, key="light_ext1", disabled=is_disabled_ext)
-                light_ext_2 = st.selectbox("Kịch bản ánh sáng (PA 2):", lighting_ext_options, index=1, key="light_ext2", disabled=is_disabled_ext)
+      with st.container(border=True):
+        st.markdown("**2. Kịch bản Ánh sáng**")
+        light_ext_1 = st.selectbox(
+            "Kịch bản ánh sáng (PA 1):",
+            lighting_ext_options,
+            key="light_ext1",
+            disabled=is_disabled_ext,
+        )
+        light_ext_2 = st.selectbox(
+            "Kịch bản ánh sáng (PA 2):",
+            lighting_ext_options,
+            index=1,
+            key="light_ext2",
+            disabled=is_disabled_ext,
+        )
 
-            with st.container(border=True):
-                st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
-                film_ext_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_ext_options, index=1, key="film_ext1", disabled=is_disabled_ext)
-                film_ext_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_ext_options, index=3, key="film_ext2", disabled=is_disabled_ext)
+      with st.container(border=True):
+        st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
+        film_ext_1 = st.selectbox(
+            "Hiệu ứng màu sắc (PA 1):",
+            film_ext_options,
+            index=1,
+            key="film_ext1",
+            disabled=is_disabled_ext,
+        )
+        film_ext_2 = st.selectbox(
+            "Hiệu ứng màu sắc (PA 2):",
+            film_ext_options,
+            index=3,
+            key="film_ext2",
+            disabled=is_disabled_ext,
+        )
 
-    with col_main_e:
-        h_col_e, b_col_e, s_col_e, c_col_e = st.columns([2.0, 2.0, 0.8, 0.8], vertical_alignment="center")
-        with h_col_e: st.markdown('<p class="custom-header-title">Kết quả Prompt</p>', unsafe_allow_html=True)
-        with b_col_e: analyze_btn_ext = st.button("Phân tích & Tạo Prompt", type="primary", use_container_width=True, key="btn_anl_ext")
-        with s_col_e: stop_btn_ext = st.button("⏹️ Dừng", type="secondary", use_container_width=True, key="btn_stop_ext")
-        with c_col_e: clear_btn_ext = st.button("🗑️ Xóa", use_container_width=True, key="btn_clr_ext")
+  with col_main_e:
+    h_col_e, b_col_e, s_col_e, c_col_e = st.columns(
+        [2.0, 2.0, 0.8, 0.8], vertical_alignment="center"
+    )
+    with h_col_e:
+      st.markdown(
+          '<p class="custom-header-title">Kết quả Prompt</p>',
+          unsafe_allow_html=True,
+      )
+    with b_col_e:
+      analyze_btn_ext = st.button(
+          "Phân tích & Tạo Prompt",
+          type="primary",
+          use_container_width=True,
+          key="btn_anl_ext",
+      )
+    with s_col_e:
+      stop_btn_ext = st.button(
+          "⏹️ Dừng", type="secondary", use_container_width=True, key="btn_stop_ext"
+      )
+    with c_col_e:
+      clear_btn_ext = st.button(
+          "🗑️ Xóa", use_container_width=True, key="btn_clr_ext"
+      )
 
-        if stop_btn_ext: st.warning("Đã hủy quá trình phân tích Ngoại thất!")
-        if clear_btn_ext:
-            st.session_state.p1_res_ext = None
-            st.session_state.p2_res_ext = None
-            st.session_state.uploader_key_ext += 1
-            st.rerun()
+    if stop_btn_ext:
+      st.warning("Đã hủy quá trình phân tích Ngoại thất!")
+    if clear_btn_ext:
+      st.session_state.p1_res_ext = None
+      st.session_state.p2_res_ext = None
+      st.session_state.uploader_key_ext += 1
+      st.rerun()
 
-        prompt1_text_ext = st.session_state.p1_res_ext if st.session_state.p1_res_ext else "Chưa có kết quả Ngoại thất PA 1..."
-        render_prompt_card("Phương án 1 (Ngoại thất):", prompt1_text_ext, "p1_ext")
-        st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
-        prompt2_text_ext = st.session_state.p2_res_ext if st.session_state.p2_res_ext else "Chưa có kết quả Ngoại thất PA 2..."
-        render_prompt_card("Phương án 2 (Ngoại thất):", prompt2_text_ext, "p2_ext")
+    prompt1_text_ext = (
+        st.session_state.p1_res_ext
+        if st.session_state.p1_res_ext
+        else "Chưa có kết quả Ngoại thất PA 1..."
+    )
+    render_prompt_card(
+        "Phương án 1 (Ngoại thất):", prompt1_text_ext, "p1_ext"
+    )
+    st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
+    prompt2_text_ext = (
+        st.session_state.p2_res_ext
+        if st.session_state.p2_res_ext
+        else "Chưa có kết quả Ngoại thất PA 2..."
+    )
+    render_prompt_card(
+        "Phương án 2 (Ngoại thất):", prompt2_text_ext, "p2_ext"
+    )
 
-    with col_right_e:
-        with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
-            with st.container(border=True):
-                st.markdown("**Ảnh phác thảo / CAD:**")
-                sketch_file_ext = st.file_uploader("Tải ảnh phác thảo Ngoại thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"sketch_up_ext_{st.session_state.uploader_key_ext}")
-                if sketch_file_ext:
-                    sketch_bytes_ext = sketch_file_ext.getvalue()
-                    sketch_img_ext = Image.open(io.BytesIO(sketch_bytes_ext))
-                    render_clickable_image(file_bytes_to_b64(sketch_bytes_ext), "Ảnh phác thảo Ngoại thất", 0)
-                else: sketch_img_ext = None
-
-            with st.container(border=True):
-                r_head1_e, r_head2_e = st.columns([1.1, 1], vertical_alignment="center")
-                with r_head1_e: st.markdown("**Ảnh tham chiếu:**")
-                with r_head2_e: only_light_mode_ext = st.checkbox("Chỉ lấy sáng", value=False, key="only_light_ext")
-                ref_file_ext = st.file_uploader("Tải ảnh tham chiếu Ngoại thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"ref_up_ext_{st.session_state.uploader_key_ext}")
-                if ref_file_ext:
-                    ref_bytes_ext = ref_file_ext.getvalue()
-                    ref_img_ext = Image.open(io.BytesIO(ref_bytes_ext))
-                    render_clickable_image(file_bytes_to_b64(ref_bytes_ext), "Ảnh tham chiếu Ngoại thất", 1)
-                else: ref_img_ext = None
-
-            extra_notes_ext = st.text_area("Mô tả hoặc yêu cầu bổ sung:", placeholder="Ví dụ: biệt thự 3 tầng, thêm cây cảnh nhiệt đới...", height=75, key=f"notes_ext_{st.session_state.uploader_key_ext}")
-
-    if analyze_btn_ext:
-        if not api_key_ext: st.error("Vui lòng nhập API Key!")
-        elif not sketch_file_ext: st.warning("Vui lòng tải lên ảnh phác thảo Ngoại thất!")
+  with col_right_e:
+    with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
+      with st.container(border=True):
+        st.markdown("**Ảnh phác thảo / CAD:**")
+        sketch_file_ext = st.file_uploader(
+            "Tải ảnh phác thảo Ngoại thất",
+            type=["png", "jpg", "jpeg"],
+            label_visibility="collapsed",
+            key=f"sketch_up_ext_{st.session_state.uploader_key_ext}",
+        )
+        if sketch_file_ext:
+          sketch_bytes_ext = sketch_file_ext.getvalue()
+          sketch_img_ext = Image.open(io.BytesIO(sketch_bytes_ext))
+          render_clickable_image(
+              file_bytes_to_b64(sketch_bytes_ext), "Ảnh phác thảo Ngoại thất", 0
+          )
         else:
-            try:
-                p1, p2 = process_gemini_analysis(
-                    api_key_ext, selected_model_ext, light_ext_1, film_ext_1, light_ext_2, film_ext_2,
-                    sketch_img_ext, ref_img_ext, extra_notes_ext, only_light_mode_ext, is_interior=False
-                )
-                st.session_state.p1_res_ext = p1
-                st.session_state.p2_res_ext = p2
-                st.session_state.show_dog_modal = True
-                st.rerun()
-            except Exception as e:
-                st.error(f"Lỗi khi kết nối API: {str(e)}")
+          sketch_img_ext = None
+
+      with st.container(border=True):
+        r_head1_e, r_head2_e = st.columns(
+            [1.1, 1], vertical_alignment="center"
+        )
+        with r_head1_e:
+          st.markdown("**Ảnh tham chiếu:**")
+        with r_head2_e:
+          only_light_mode_ext = st.checkbox(
+              "Chỉ lấy sáng", value=False, key="only_light_ext"
+          )
+        ref_file_ext = st.file_uploader(
+            "Tải ảnh tham chiếu Ngoại thất",
+            type=["png", "jpg", "jpeg"],
+            label_visibility="collapsed",
+            key=f"ref_up_ext_{st.session_state.uploader_key_ext}",
+        )
+        if ref_file_ext:
+          ref_bytes_ext = ref_file_ext.getvalue()
+          ref_img_ext = Image.open(io.BytesIO(ref_bytes_ext))
+          render_clickable_image(
+              file_bytes_to_b64(ref_bytes_ext), "Ảnh tham chiếu Ngoại thất", 1
+          )
+        else:
+          ref_img_ext = None
+
+      extra_notes_ext = st.text_area(
+          "Mô tả hoặc yêu cầu bổ sung:",
+          placeholder="Ví dụ: biệt thự 3 tầng, thêm cây cảnh nhiệt đới...",
+          height=75,
+          key=f"notes_ext_{st.session_state.uploader_key_ext}",
+      )
+
+  if analyze_btn_ext:
+    if not api_key_ext:
+      st.error("Vui lòng nhập API Key!")
+    elif not sketch_file_ext:
+      st.warning("Vui lòng tải lên ảnh phác thảo Ngoại thất!")
+    else:
+      try:
+        p1, p2 = process_gemini_analysis(
+            api_key_ext,
+            selected_model_ext,
+            light_ext_1,
+            film_ext_1,
+            light_ext_2,
+            film_ext_2,
+            sketch_img_ext,
+            ref_img_ext,
+            extra_notes_ext,
+            only_light_mode_ext,
+            is_interior=False,
+        )
+        st.session_state.p1_res_ext = p1
+        st.session_state.p2_res_ext = p2
+        st.session_state.show_dog_modal = True
+        st.rerun()
+      except Exception as e:
+        st.error(f"Lỗi khi kết nối API: {str(e)}")
 
 
 # -------------------- TAB 2: NỘI THẤT --------------------
 with tab_int:
-    col_left_i, col_main_i, col_right_i = st.columns([1.0, 1.5, 1.0], gap="medium")
-    is_disabled_int = st.session_state.get("only_light_int", False)
+  col_left_i, col_main_i, col_right_i = st.columns([1.0, 1.5, 1.0], gap="medium")
+  is_disabled_int = st.session_state.get("only_light_int", False)
 
-    with col_left_i:
-        with st.expander("⚙️ Cấu hình API & AI Model (Nội thất)", expanded=True):
-            with st.container(border=True):
-                st.markdown("**1. API & Model AI**")
-                user_api_key_int = st.text_input(
-                    "Gemini API Key (Tùy chọn):", type="password",
-                    placeholder="Đã dùng Key hệ thống bí mật" if secret_api_key else "Nhập API Key...",
-                    key="api_key_int_input"
-                )
-                api_key_int = user_api_key_int.strip() if user_api_key_int.strip() else secret_api_key
-                if secret_api_key and not user_api_key_int:
-                    st.caption("🟢 **Trạng thái:** Đã kết nối API Key hệ thống.")
-                selected_model_int = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro"], key="model_int")
+  with col_left_i:
+    with st.expander("⚙️ Cấu hình API & AI Model (Nội thất)", expanded=True):
+      with st.container(border=True):
+        st.markdown("**1. API & Model AI**")
+        user_api_key_int = st.text_input(
+            "Gemini API Key (Tùy chọn):",
+            type="password",
+            placeholder=(
+                "Đã dùng Key hệ thống bí mật"
+                if secret_api_key
+                else "Nhập API Key..."
+            ),
+            key="api_key_int_input",
+        )
+        api_key_int = (
+            user_api_key_int.strip()
+            if user_api_key_int.strip()
+            else secret_api_key
+        )
+        if secret_api_key and not user_api_key_int:
+          st.caption("🟢 **Trạng thái:** Đã kết nối API Key hệ thống.")
+        selected_model_int = st.selectbox(
+            "Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro"], key="model_int"
+        )
 
-            with st.container(border=True):
-                st.markdown("**2. Kịch bản Ánh sáng**")
-                light_int_1 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 1):", lighting_int_options, index=0, key="light_int1", disabled=is_disabled_int)
-                light_int_2 = st.selectbox("Kịch bản ánh sáng Nội thất (PA 2):", lighting_int_options, index=4, key="light_int2", disabled=is_disabled_int)
+      with st.container(border=True):
+        st.markdown("**2. Kịch bản Ánh sáng**")
+        light_int_1 = st.selectbox(
+            "Kịch bản ánh sáng Nội thất (PA 1):",
+            lighting_int_options,
+            index=0,
+            key="light_int1",
+            disabled=is_disabled_int,
+        )
+        light_int_2 = st.selectbox(
+            "Kịch bản ánh sáng Nội thất (PA 2):",
+            lighting_int_options,
+            index=4,
+            key="light_int2",
+            disabled=is_disabled_int,
+        )
 
-            with st.container(border=True):
-                st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
-                film_int_1 = st.selectbox("Hiệu ứng màu sắc (PA 1):", film_int_options, index=1, key="film_int1", disabled=is_disabled_int)
-                film_int_2 = st.selectbox("Hiệu ứng màu sắc (PA 2):", film_int_options, index=2, key="film_int2", disabled=is_disabled_int)
+      with st.container(border=True):
+        st.markdown("**3. Hiệu ứng Hình ảnh & Nhiếp ảnh**")
+        film_int_1 = st.selectbox(
+            "Hiệu ứng màu sắc (PA 1):",
+            film_int_options,
+            index=1,
+            key="film_int1",
+            disabled=is_disabled_int,
+        )
+        film_int_2 = st.selectbox(
+            "Hiệu ứng màu sắc (PA 2):",
+            film_int_options,
+            index=2,
+            key="film_int2",
+            disabled=is_disabled_int,
+        )
 
-    with col_main_i:
-        h_col_i, b_col_i, s_col_i, c_col_i = st.columns([2.0, 2.0, 0.8, 0.8], vertical_alignment="center")
-        with h_col_i: st.markdown('<p class="custom-header-title">Kết quả Prompt</p>', unsafe_allow_html=True)
-        with b_col_i: analyze_btn_int = st.button("Phân tích & Tạo Prompt", type="primary", use_container_width=True, key="btn_anl_int")
-        with s_col_i: stop_btn_int = st.button("⏹️ Dừng", type="secondary", use_container_width=True, key="btn_stop_int")
-        with c_col_i: clear_btn_int = st.button("🗑️ Xóa", use_container_width=True, key="btn_clr_int")
+  with col_main_i:
+    h_col_i, b_col_i, s_col_i, c_col_i = st.columns(
+        [2.0, 2.0, 0.8, 0.8], vertical_alignment="center"
+    )
+    with h_col_i:
+      st.markdown(
+          '<p class="custom-header-title">Kết quả Prompt</p>',
+          unsafe_allow_html=True,
+      )
+    with b_col_i:
+      analyze_btn_int = st.button(
+          "Phân tích & Tạo Prompt",
+          type="primary",
+          use_container_width=True,
+          key="btn_anl_int",
+      )
+    with s_col_i:
+      stop_btn_int = st.button(
+          "⏹️ Dừng", type="secondary", use_container_width=True, key="btn_stop_int"
+      )
+    with c_col_i:
+      clear_btn_int = st.button(
+          "🗑️ Xóa", use_container_width=True, key="btn_clr_int"
+      )
 
-        if stop_btn_int: st.warning("Đã hủy quá trình phân tích Nội thất!")
-        if clear_btn_int:
-            st.session_state.p1_res_int = None
-            st.session_state.p2_res_int = None
-            st.session_state.uploader_key_int += 1
-            st.rerun()
+    if stop_btn_int:
+      st.warning("Đã hủy quá trình phân tích Nội thất!")
+    if clear_btn_int:
+      st.session_state.p1_res_int = None
+      st.session_state.p2_res_int = None
+      st.session_state.uploader_key_int += 1
+      st.rerun()
 
-        prompt1_text_int = st.session_state.p1_res_int if st.session_state.p1_res_int else "Chưa có kết quả Nội thất PA 1..."
-        render_prompt_card("Phương án 1 (Nội thất):", prompt1_text_int, "p1_int")
-        st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
-        prompt2_text_int = st.session_state.p2_res_int if st.session_state.p2_res_int else "Chưa có kết quả Nội thất PA 2..."
-        render_prompt_card("Phương án 2 (Nội thất):", prompt2_text_int, "p2_int")
+    prompt1_text_int = (
+        st.session_state.p1_res_int
+        if st.session_state.p1_res_int
+        else "Chưa có kết quả Nội thất PA 1..."
+    )
+    render_prompt_card("Phương án 1 (Nội thất):", prompt1_text_int, "p1_int")
+    st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
+    prompt2_text_int = (
+        st.session_state.p2_res_int
+        if st.session_state.p2_res_int
+        else "Chưa có kết quả Nội thất PA 2..."
+    )
+    render_prompt_card("Phương án 2 (Nội thất):", prompt2_text_int, "p2_int")
 
-    with col_right_i:
-        with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
-            with st.container(border=True):
-                st.markdown("**Ảnh phác thảo Nội thất / CAD:**")
-                sketch_file_int = st.file_uploader("Tải ảnh phác thảo Nội thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"sketch_up_int_{st.session_state.uploader_key_int}")
-                if sketch_file_int:
-                    sketch_bytes_int = sketch_file_int.getvalue()
-                    sketch_img_int = Image.open(io.BytesIO(sketch_bytes_int))
-                    render_clickable_image(file_bytes_to_b64(sketch_bytes_int), "Ảnh phác thảo Nội thất", 2)
-                else: sketch_img_int = None
-
-            with st.container(border=True):
-                r_head1_i, r_head2_i = st.columns([1.1, 1], vertical_alignment="center")
-                with r_head1_i: st.markdown("**Ảnh tham chiếu Nội thất:**")
-                with r_head2_i: only_light_mode_int = st.checkbox("Chỉ lấy sáng", value=False, key="only_light_int")
-                ref_file_int = st.file_uploader("Tải ảnh tham chiếu Nội thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"ref_up_int_{st.session_state.uploader_key_int}")
-                if ref_file_int:
-                    ref_bytes_int = ref_file_int.getvalue()
-                    ref_img_int = Image.open(io.BytesIO(ref_bytes_int))
-                    render_clickable_image(file_bytes_to_b64(ref_bytes_int), "Ảnh tham chiếu Nội thất", 3)
-                else: ref_img_int = None
-
-            extra_notes_int = st.text_area("Mô tả hoặc yêu cầu bổ sung:", placeholder="Ví dụ: phòng khách hiện đại, sofa da bò, đèn chùm cao cấp...", height=75, key=f"notes_int_{st.session_state.uploader_key_int}")
-
-    if analyze_btn_int:
-        if not api_key_int: st.error("Vui lòng nhập API Key!")
-        elif not sketch_file_int: st.warning("Vui lòng tải lên ảnh phác thảo Nội thất!")
+  with col_right_i:
+    with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
+      with st.container(border=True):
+        st.markdown("**Ảnh phác thảo Nội thất / CAD:**")
+        sketch_file_int = st.file_uploader(
+            "Tải ảnh phác thảo Nội thất",
+            type=["png", "jpg", "jpeg"],
+            label_visibility="collapsed",
+            key=f"sketch_up_int_{st.session_state.uploader_key_int}",
+        )
+        if sketch_file_int:
+          sketch_bytes_int = sketch_file_int.getvalue()
+          sketch_img_int = Image.open(io.BytesIO(sketch_bytes_int))
+          render_clickable_image(
+              file_bytes_to_b64(sketch_bytes_int), "Ảnh phác thảo Nội thất", 2
+          )
         else:
-            try:
-                p1, p2 = process_gemini_analysis(
-                    api_key_int, selected_model_int, light_int_1, film_int_1, light_int_2, film_int_2,
-                    sketch_img_int, ref_img_int, extra_notes_int, only_light_mode_int, is_interior=True
-                )
-                st.session_state.p1_res_int = p1
-                st.session_state.p2_res_int = p2
-                st.session_state.show_dog_modal = True
-                st.rerun()
-            except Exception as e:
-                st.error(f"Lỗi khi kết nối API: {str(e)}")
+          sketch_img_int = None
+
+      with st.container(border=True):
+        r_head1_i, r_head2_i = st.columns(
+            [1.1, 1], vertical_alignment="center"
+        )
+        with r_head1_i:
+          st.markdown("**Ảnh tham chiếu Nội thất:**")
+        with r_head2_i:
+          only_light_mode_int = st.checkbox(
+              "Chỉ lấy sáng", value=False, key="only_light_int"
+          )
+        ref_file_int = st.file_uploader(
+            "Tải ảnh tham chiếu Nội thất",
+            type=["png", "jpg", "jpeg"],
+            label_visibility="collapsed",
+            key=f"ref_up_int_{st.session_state.uploader_key_int}",
+        )
+        if ref_file_int:
+          ref_bytes_int = ref_file_int.getvalue()
+          ref_img_int = Image.open(io.BytesIO(ref_bytes_int))
+          render_clickable_image(
+              file_bytes_to_b64(ref_bytes_int), "Ảnh tham chiếu Nội thất", 3
+          )
+        else:
+          ref_img_int = None
+
+      extra_notes_int = st.text_area(
+          "Mô tả hoặc yêu cầu bổ sung:",
+          placeholder=(
+              "Ví dụ: phòng khách hiện đại, sofa da bò, đèn chùm cao cấp..."
+          ),
+          height=75,
+          key=f"notes_int_{st.session_state.uploader_key_int}",
+      )
+
+  if analyze_btn_int:
+    if not api_key_int:
+      st.error("Vui lòng nhập API Key!")
+    elif not sketch_file_int:
+      st.warning("Vui lòng tải lên ảnh phác thảo Nội thất!")
+    else:
+      try:
+        p1, p2 = process_gemini_analysis(
+            api_key_int,
+            selected_model_int,
+            light_int_1,
+            film_int_1,
+            light_int_2,
+            film_int_2,
+            sketch_img_int,
+            ref_img_int,
+            extra_notes_int,
+            only_light_mode_int,
+            is_interior=True,
+        )
+        st.session_state.p1_res_int = p1
+        st.session_state.p2_res_int = p2
+        st.session_state.show_dog_modal = True
+        st.rerun()
+      except Exception as e:
+        st.error(f"Lỗi khi kết nối API: {str(e)}")

@@ -584,7 +584,7 @@ with tab_int:
                 sketch_file_int = st.file_uploader("Tải ảnh phác thảo Nội thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"sketch_up_int_{st.session_state.uploader_key_int}")
                 if sketch_file_int:
                     sketch_img_int = Image.open(sketch_file_int)
-                    render_clickable_image(image_to_b64(sketch_img_int), "Ảnh phác thảo Nội thất", 0)
+                    render_clickable_image(image_to_b64(sketch_img_int), "Ảnh phác thảo Nội thất", 2)
                 else: sketch_img_int = None
 
             with st.container(border=True):
@@ -594,7 +594,7 @@ with tab_int:
                 ref_file_int = st.file_uploader("Tải ảnh tham chiếu Nội thất", type=["png", "jpg", "jpeg"], label_visibility="collapsed", key=f"ref_up_int_{st.session_state.uploader_key_int}")
                 if ref_file_int:
                     ref_img_int = Image.open(ref_file_int)
-                    render_clickable_image(image_to_b64(ref_img_int), "Ảnh tham chiếu Nội thất", 1)
+                    render_clickable_image(image_to_b64(ref_img_int), "Ảnh tham chiếu Nội thất", 3)
                 else: ref_img_int = None
 
             extra_notes_int = st.text_area("Mô tả hoặc yêu cầu bổ sung:", placeholder="Ví dụ: phòng khách hiện đại, sofa da bò, đèn chùm cao cấp...", height=75, key=f"notes_int_{st.session_state.uploader_key_int}")

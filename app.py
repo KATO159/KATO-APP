@@ -250,23 +250,65 @@ if st.session_state.get("show_dog_modal", False):
         height=0,
     )
 
-# DANH SÁCH TÙY CHỌN ÁNH SÁNG & BỐI CẢNH
+# ==================== DANH SÁCH TÙY CHỌN (KHÔI PHỤC TỪ BẢN GỐC) ====================
+
+# Ngoại thất
 lighting_ext_options = [
-    "Bright early morning sunlight with soft warm shadows",
-    "High noon direct sunlight with sharp geometric shadows",
-    "Overcast diffused daylight highlighting natural material textures",
-    "Warm golden hour sunset with long dramatic outdoor shadows",
-    "Twilight blue hour with warm facade accent lights turned on",
-    "Moody night landscape with outdoor spotlights"
+    "A1 - Nắng sáng sớm trong trẻo (Bright Early Morning Sun)",
+    "A2 - Nắng trưa rực rỡ & Bóng đổ sắc nét (High Noon Direct Sun & Sharp Shadows)",
+    "A3 - Ngày mây / Ánh sáng tán xạ (Overcast Diffused Light - True Material Focus)",
+    "A4 - Hoàng hôn rực rỡ / Giờ vàng (Golden Hour Warm Sunset)",
+    "A5 - Chạng vạng lên đèn kiến trúc (Blue Hour & Facade Lighting)",
+    "A6 - Đêm huyền bí & Điểm nhấn cảnh quan (Moody Night & Landscape Spotlights)",
+    "A7 - Sau mưa / Sân ướt phản chiếu (Post-Rain Wet Surface Reflections)"
 ]
 
+context_ext_options = [
+    "C1 - Phố thị hiện đại (Urban Street & Paved Sidewalk - Natural Layout)",
+    "C2 - Biệt thự sân vườn nhiệt đới (Tropical Villa Garden & Pool - Gentle Greenery)",
+    "C3 - Ngoại ô / Khu nghỉ dưỡng (Suburban Resort & Nature Greenery - Balanced Surroundings)",
+    "C4 - Mặt đường sau mưa (Post-Rain Wet Asphalt Reflections - Realistic Night Reflections)"
+]
+
+film_ext_options = [
+    "B0 - None (Màu nguyên bản công trình)",
+    "B1 - Tạp chí Kiến trúc Cao cấp (Architectural Digest - Clean & High Contrast)",
+    "B2 - Nhiếp ảnh Tạp chí Hiện đại (Fujifilm Classic Chrome - Architectural Tone)",
+    "B3 - Tông Ấm Cổ điển (Kodak Portra 400 - Warm Vintage Vibe)",
+    "B4 - Đêm Điện ảnh Đô thị (CineStill 800T - Night Halation & Glow)",
+    "B5 - Khóa Góc Đứng Chuyên dụng (Hasselblad Tilt-Shift - Zero Perspective Distortion)"
+]
+
+# Nội thất
 lighting_int_options = [
-    "Soft morning sunlight streaming through floor-to-ceiling sheer curtains",
-    "High noon bright natural daylight filling the entire room",
-    "Volumetric sunlight beams filtering through window blinds",
-    "Cozy evening ambient lighting with warm 3000K recessed spots",
-    "Neutral 4000K daylight creating a crisp minimalist ambiance",
-    "Concealed cove LED lighting combined with sleek magnetic track lights"
+    "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
+    "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
+    "I3 - Luồng nắng xuyên khe (Volumetric God Rays)",
+    "I4 - Trời u uất / Ánh sáng tán xạ đều (Overcast Ambient Light - Material Focus)",
+    "I5 - Đèn ấm thư giãn (Warm Cozy Mood 2700K - 3000K)",
+    "I6 - Đèn trung tính hiện đại (Neutral Daylight 4000K - 4500K)",
+    "I7 - Đèn LED hắt khe & Ray âm trần (Modern Cove LED & Magnetic Track Lights)",
+    "I8 - Hỗn hợp Hoàng hôn & Đèn trong nhà (Golden Hour & Indoor Warm Lights)",
+    "I9 - Tối nghệ thuật & Đèn rọi điểm nhấn (Moody Dark & Accent Spotlights)",
+    "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)"
+]
+
+context_int_options = [
+    "C1 - View sân vườn nhiệt đới qua kính (Glass Wall to Tropical Garden View - Soft Ambient Green)",
+    "C2 - View thành phố trên cao (High-Rise City Skyline View - Natural High-Rise Light)",
+    "C3 - Vệt nắng & Hạt bụi vờn nhẹ (Volumetric Sunlight & Floating Dust Motes - Atmospheric Depth)",
+    "C4 - Dấu vết sinh hoạt tự nhiên (Lived-in Natural Details - Fresh Flora & Balanced Decor)"
+]
+
+film_int_options = [
+    "F0 - None (Màu nguyên bản chất liệu)",
+    "F1 - Tạp chí Sáng trong (Architectural Digest - Clean & Bright Showcase)",
+    "F2 - Tông Gỗ & Đất Ấm áp (Kodak Portra 400 - Warm Wood & Earth Tones)",
+    "F3 - Mộc mạc & Creamy (Fuji Pro 400H - Soft & Airy Pastel)",
+    "F4 - Sang trọng Điện ảnh (Cinematic Moody - Deep Shadows & Contrast)",
+    "F5 - Ấm áp Cổ điển (Kodak Gold 200 - Vintage Warm Gold Tone)",
+    "F6 - Kính lọc Tán mờ Đèn (Black Pro-Mist 1/4 - Soft Glow Lights)",
+    "F7 - Chi tiết Siêu nét Medium Format (Hasselblad - Zero Distortion & High Texture)"
 ]
 
 
@@ -274,7 +316,9 @@ lighting_int_options = [
 def process_gemini_analysis_split(
     api_key,
     selected_model_display,
-    lighting_opt,
+    light_opt,
+    context_opt,
+    film_opt,
     sketch_img,
     ref_img,
     extra_notes,
@@ -293,6 +337,16 @@ def process_gemini_analysis_split(
 
     domain = "INTERIOR ARCHITECTURE" if is_interior else "EXTERIOR ARCHITECTURE"
 
+    # Lọc chuỗi tiếng Việt lấy cụm mô tả
+    clean_light = light_opt.split(" - ")[1] if " - " in light_opt else light_opt
+    clean_context = context_opt.split(" - ")[1] if " - " in context_opt else context_opt
+    clean_film = film_opt.split(" - ")[1] if " - " in film_opt else film_opt
+
+    if "B0" in film_opt or "F0" in film_opt:
+        camera_instruction = "Shot on Hasselblad H6D-100c, wide-angle lens, straight vertical lines, eye-level view, crisp surface textures, natural true-to-life colors without any film filter."
+    else:
+        camera_instruction = f"Shot on Hasselblad H6D-100c, wide-angle lens, straight vertical lines, eye-level view, crisp surface textures. Apply {clean_film} photography style and color grading."
+
     system_instruction = f"""
     You are an expert architectural prompt engineer specializing in GOOGLE LABS FLOW (ImageFX / Imagen model).
     Analyze the sketch image of {domain} and write a 4-part natural English description.
@@ -301,15 +355,15 @@ def process_gemini_analysis_split(
     - If the user provided extra notes, prioritize the user's note over the sketch line darkness/shadows. 
 
     FORMAT RULES FOR GOOGLE LABS (IMAGEFX):
-    - Write strictly in clear English natural sentences.
+    - TRANSLATE IDEAS TO ENGLISH: The lighting, context, and camera effects requested below might be in Vietnamese. You MUST translate and write strictly in clear English natural sentences.
     - DO NOT use Midjourney tags (--ar, --v), resolution buzzwords (8k, 16k, photorealistic), or render engine names.
 
     OUTPUT STRUCTURE REQUIREMENT:
     Return EXACTLY 4 sections separated by `===SECTION_SPLIT===`:
     Section 1 (Subject & Style): A sentence starting with "A professional architectural photograph of a..." describing space type and style.
     Section 2 (Materials & Colors): A sentence starting with "The space features..." listing exact materials and colors.
-    Section 3 (Lighting & Environment): A sentence describing the lighting: "{lighting_opt}".
-    Section 4 (Camera Specs & Depth): A sentence describing camera technique: "Shot on Hasselblad H6D-100c, wide-angle lens, straight vertical lines, eye-level view, crisp surface textures."
+    Section 3 (Lighting & Environment): A natural English sentence describing the following lighting and context: "{clean_light}" and "{clean_context}".
+    Section 4 (Camera Specs & Depth): Write exactly this (adapting into natural English): "{camera_instruction}"
     """
 
     content_inputs = [system_instruction, sketch_img]
@@ -382,7 +436,11 @@ with tab_ext:
                     except Exception as e:
                         st.error(f"Lỗi: {e}")
 
-            light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=0, key="light_ext")
+            # ĐÃ KHÔI PHỤC: 3 Tùy chọn chi tiết
+            st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+            light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=3, key="light_ext")
+            context_ext = st.selectbox("Bối cảnh môi trường:", context_ext_options, index=1, key="context_ext")
+            film_ext = st.selectbox("Hiệu ứng màu sắc:", film_ext_options, index=1, key="film_ext")
 
     with col_main_e:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
@@ -442,9 +500,8 @@ with tab_ext:
         else:
             try:
                 boxes = process_gemini_analysis_split(
-                    api_key_ext, selected_model_ext, light_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False
+                    api_key_ext, selected_model_ext, light_ext, context_ext, film_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False
                 )
-                # CHUYỂN DỮ LIỆU VÀO HÀNG CHỜ VÀ RELOAD
                 st.session_state.pending_ext_boxes = boxes
                 st.session_state.show_dog_modal = True
                 st.rerun()
@@ -485,7 +542,11 @@ with tab_int:
                     except Exception as e:
                         st.error(f"Lỗi: {e}")
 
-            light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=0, key="light_int")
+            # ĐÃ KHÔI PHỤC: 3 Tùy chọn chi tiết
+            st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+            light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=4, key="light_int")
+            context_int = st.selectbox("Bối cảnh môi trường:", context_int_options, index=0, key="context_int")
+            film_int = st.selectbox("Hiệu ứng màu sắc:", film_int_options, index=1, key="film_int")
 
     with col_main_i:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
@@ -545,9 +606,8 @@ with tab_int:
         else:
             try:
                 boxes = process_gemini_analysis_split(
-                    api_key_int, selected_model_int, light_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True
+                    api_key_int, selected_model_int, light_int, context_int, film_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True
                 )
-                # CHUYỂN DỮ LIỆU VÀO HÀNG CHỜ VÀ RELOAD
                 st.session_state.pending_int_boxes = boxes
                 st.session_state.show_dog_modal = True
                 st.rerun()

@@ -115,7 +115,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
             .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.9rem; }}
             .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 3px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 235px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 220px; min-height: 220px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -149,7 +149,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-  components.html(html_code, height=275)
+  components.html(html_code, height=260)
 
 
 # Hiển thị ảnh xem trước
@@ -162,9 +162,9 @@ def render_clickable_image(img_b64, caption, uploader_index):
         <style>
             * {{ box-sizing: border-box; }}
             body {{ margin: 0; padding: 0; background-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
-            .img-container {{ position: relative; width: 100%; height: 140px; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1.5px dashed #484c5a; transition: all 0.25s ease; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; }}
+            .img-container {{ position: relative; width: 100%; height: 135px; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1.5px dashed #484c5a; transition: all 0.25s ease; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; }}
             .img-container:hover {{ border-color: #28a745; box-shadow: 0 0 12px rgba(40, 167, 69, 0.35); }}
-            .img-container img {{ max-height: 130px; width: 100%; object-fit: contain; display: block; transition: filter 0.25s ease, transform 0.25s ease; }}
+            .img-container img {{ max-height: 125px; width: 100%; object-fit: contain; display: block; transition: filter 0.25s ease, transform 0.25s ease; }}
             .img-container:hover img {{ filter: brightness(0.45); transform: scale(1.01); }}
             .overlay-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ffffff; font-weight: 700; font-size: 0.82rem; background: rgba(38, 39, 48, 0.92); padding: 6px 12px; border-radius: 16px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; white-space: nowrap; border: 1px solid #28a745; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }}
             .img-container:hover .overlay-text {{ opacity: 1; }}
@@ -202,17 +202,17 @@ def render_clickable_image(img_b64, caption, uploader_index):
     </body>
     </html>
     """
-  components.html(html_code, height=165)
+  components.html(html_code, height=160)
 
 
 # CSS GIAO DIỆN HỆ THỐNG
 st.markdown(
     """
 <style>
+/* Đảm bảo trang web không bị khoá cứng gây cắt mất giao diện */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
-    overflow: hidden !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
 }
 
 div[data-testid="stHeader"], header[data-testid="stHeader"] {
@@ -228,16 +228,13 @@ div[data-testid="stHeader"] *, header[data-testid="stHeader"] * {
 
 section[data-testid="stSidebar"] { display: none !important; }
 
-/* Căn chỉnh khoảng cách padding để giao diện nằm gọn hoàn toàn trong vùng màu đỏ giữa header trên và footer dưới */
+/* Căn chỉnh block container gọn gàng, vừa vặn màn hình desktop/laptop */
 .block-container {
-    padding-top: 3.0rem !important;
-    padding-bottom: 3.2rem !important;
-    padding-left: 1.0rem !important;
-    padding-right: 1.0rem !important;
+    padding-top: 2.8rem !important;
+    padding-bottom: 1.0rem !important;
+    padding-left: 0.8rem !important;
+    padding-right: 0.8rem !important;
     max-width: 100% !important;
-    height: 100vh !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
 }
 
 div[data-baseweb="tab-list"] {
@@ -246,9 +243,9 @@ div[data-baseweb="tab-list"] {
     pointer-events: auto !important;
 }
 button[data-baseweb="tab"] {
-    font-size: 1.05rem !important;
+    font-size: 1.0rem !important;
     font-weight: 700 !important;
-    padding: 0.4rem 1.6rem !important;
+    padding: 0.4rem 1.5rem !important;
     border-radius: 8px 8px 0 0 !important;
     cursor: pointer !important;
     pointer-events: auto !important;
@@ -261,28 +258,57 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Khung Expander 2 bên khớp chính xác chiều cao khu vực màu đỏ */
+/* Sửa lỗi iframe Custom Component bị đè phẳng/biến mất khi chuyển Tab */
+iframe[data-testid="stCustomComponentV1"], iframe {
+    width: 100% !important;
+    min-height: 260px !important;
+    display: block !important;
+}
+
+/* Khung Expander 2 bên linh hoạt cuộn mượt mà, không cắt mất Mục 4 */
 div[data-testid="stExpander"] {
     background-color: #1e1e24 !important;
     border: 1px solid #363945 !important;
     border-radius: 10px !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    margin-bottom: 0.5rem !important;
 }
-div[data-testid="stExpander"]:has(details[open]) {
-    height: calc(100vh - 9.8rem) !important;
-    min-height: calc(100vh - 9.8rem) !important;
-    max-height: calc(100vh - 9.8rem) !important;
+div[data-testid="stExpander"] details {
     display: flex !important;
     flex-direction: column !important;
 }
-div[data-testid="stExpander"]:has(details:not([open])) { height: auto !important; }
-div[data-testid="stExpander"] details { display: flex !important; flex-direction: column !important; height: 100% !important; overflow: hidden !important; }
-div[data-testid="stExpander"] details summary { font-weight: 600 !important; font-size: 0.92rem !important; color: #e0e0e0 !important; padding: 0.4rem 0.8rem !important; flex-shrink: 0 !important; }
-div[data-testid="stExpander"] details > div[role="region"] { overflow-y: auto !important; padding-right: 0.3rem !important; padding-left: 0.2rem !important; padding-bottom: 0.2rem !important; flex: 1 !important; }
+div[data-testid="stExpander"] details summary {
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    color: #e0e0e0 !important;
+    padding: 0.35rem 0.7rem !important;
+}
+div[data-testid="stExpander"] details > div[role="region"] {
+    overflow-y: auto !important;
+    max-height: calc(100vh - 10.5rem) !important;
+    padding: 0.3rem 0.4rem !important;
+}
 
-div[data-testid="stVerticalBlockBorderWrapper"] { border-radius: 8px !important; background-color: #262730 !important; border: 1px solid #363945 !important; margin-bottom: 0.3rem !important; padding: 0.4rem !important; }
+/* Tối ưu khoảng cách các container bên trong expander để vừa vặn cả 4 mục */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 8px !important;
+    background-color: #262730 !important;
+    border: 1px solid #363945 !important;
+    margin-bottom: 0.25rem !important;
+    padding: 0.3rem 0.5rem !important;
+}
 
-.custom-header-title { white-space: nowrap !important; font-size: 1.25rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; line-height: 32px !important; }
+div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMarkdownContainer"] p {
+    font-size: 0.85rem !important;
+    margin-bottom: 0.1rem !important;
+}
+div[data-testid="stVerticalBlockBorderWrapper"] .stCaption p {
+    font-size: 0.75rem !important;
+    margin-top: -0.2rem !important;
+    margin-bottom: 0.2rem !important;
+}
+
+.custom-header-title { white-space: nowrap !important; font-size: 1.2rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; line-height: 32px !important; }
 .dashed-divider { border: none !important; border-top: 1.5px dashed #484c5a !important; margin: 0.1rem 0 0.1rem 0 !important; width: 100% !important; }
 
 div[data-testid="stFileUploader"]:has(div[data-testid="stFileUploaderFileData"]),
@@ -291,14 +317,14 @@ div[data-testid="stFileUploader"]:has(button[title="Remove file"]),
 div[data-testid="stFileUploader"]:has(button[aria-label*="Remove"]),
 div[data-testid="stFileUploader"]:has(ul) { position: absolute !important; opacity: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; pointer-events: none !important; }
 
-div[data-testid="stTextArea"] textarea { height: 75px !important; max-height: 75px !important; font-size: 0.85rem !important; }
+div[data-testid="stTextArea"] textarea { height: 70px !important; max-height: 70px !important; font-size: 0.82rem !important; }
 
-button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 36px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.9rem !important; }
+button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 34px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 button[kind="primary"]:hover { background-color: #218838 !important; }
-button[kind="secondary"] { background-color: #dc3545 !important; color: #ffffff !important; border: none !important; height: 36px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.9rem !important; }
+button[kind="secondary"] { background-color: #dc3545 !important; color: #ffffff !important; border: none !important; height: 34px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 button[kind="secondary"]:hover { background-color: #c82333 !important; }
 
-div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button { background-color: #495057 !important; color: #ffffff !important; border: none !important; height: 36px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.9rem !important; }
+div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button { background-color: #495057 !important; color: #ffffff !important; border: none !important; height: 36px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button:hover { background-color: #343a40 !important; }
 </style>
 """,
@@ -875,7 +901,7 @@ with tab_int:
       )
     with c_col_i:
       clear_btn_int = st.button(
-          "🗑️ Xóa", use_container_width=True, key="btn_clr_ext"
+          "🗑️ Xóa", use_container_width=True, key="btn_clr_int"
       )
 
     if stop_btn_int:

@@ -29,16 +29,9 @@ def clean_prompt_text(text: str) -> str:
     if not text:
         return ""
     prohibited_patterns = [
-        r"--[a-z0-9]+",
-        r"\b8k\b",
-        r"\b16k\b",
-        r"\bphotorealistic\b",
-        r"\bhyperrealistic\b",
-        r"\bcorona render\b",
-        r"\bvray\b",
-        r"\boctane render\b",
-        r"\bunreal engine\b",
-        r"\bmasterpiece\b"
+        r"--[a-z0-9]+", r"\b8k\b", r"\b16k\b", r"\bphotorealistic\b",
+        r"\bhyperrealistic\b", r"\bcorona render\b", r"\bvray\b",
+        r"\boctane render\b", r"\bunreal engine\b", r"\bmasterpiece\b"
     ]
     cleaned = text
     for pattern in prohibited_patterns:
@@ -69,17 +62,14 @@ def get_transparent_dog_b64():
         if os.path.exists(f):
             target_file = f
             break
-
     if not target_file:
         for f in os.listdir("."):
             if f.lower().endswith((".png", ".jpg", ".jpeg")):
                 if "458" in f.lower() or "dog" in f.lower() or "chihuahua" in f.lower():
                     target_file = f
                     break
-
     if not target_file:
         return None
-
     try:
         img = Image.open(target_file).convert("RGBA")
         datas = img.getdata()
@@ -146,7 +136,6 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     overflow-x: hidden !important;
     overflow-y: auto !important;
 }
-
 div[data-testid="stHeader"], header[data-testid="stHeader"] {
     display: flex !important;
     background: transparent !important;
@@ -154,9 +143,7 @@ div[data-testid="stHeader"], header[data-testid="stHeader"] {
     pointer-events: none !important;
     height: 2.8rem !important;
 }
-
 section[data-testid="stSidebar"] { display: none !important; }
-
 .block-container {
     padding-top: 2.8rem !important;
     padding-bottom: 1.0rem !important;
@@ -164,7 +151,6 @@ section[data-testid="stSidebar"] { display: none !important; }
     padding-right: 0.8rem !important;
     max-width: 100% !important;
 }
-
 div[data-baseweb="tab-list"] {
     z-index: 999999 !important;
     position: relative !important;
@@ -180,9 +166,7 @@ button[aria-selected="true"] {
     color: #28a745 !important;
     border-bottom: 3px solid #28a745 !important;
 }
-
 .custom-header-title { white-space: nowrap !important; font-size: 1.2rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; line-height: 32px !important; }
-
 div[data-testid="stTextArea"] textarea {
     background-color: #1e1e24 !important;
     color: #7dd3fc !important;
@@ -191,7 +175,6 @@ div[data-testid="stTextArea"] textarea {
     border: 1px solid #363945 !important;
     border-radius: 6px !important;
 }
-
 button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 38px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 button[kind="primary"]:hover { background-color: #218838 !important; }
 </style>
@@ -257,10 +240,10 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI (SỬA TÊN MODEL MỚI NHẤT & TÁCH 4 BỐC PROMPT TIẾNG ANH)
+# HÀM XỬ LÝ GỌI API GEMINI (AUTO-MAPPING MODEL ĐỂ CHỐNG LỖI 404)
 def process_gemini_analysis_split(
     api_key,
-    selected_model,
+    selected_model_display,
     lighting_opt,
     sketch_img,
     ref_img,
@@ -269,9 +252,17 @@ def process_gemini_analysis_split(
 ):
     genai.configure(api_key=api_key)
     
-    # Xử lý chuỗi tên model chuẩn cho API
-    clean_model = selected_model.replace("models/", "")
-    model_name = f"models/{clean_model}"
+    # 🔴 AUTO-MAPPING TRÁNH LỖI 404
+    model_mapping = {
+        "gemini-3.6-flash": "gemini-1.5-flash",
+        "gemini-3.1-pro": "gemini-1.5-pro",
+        "gemini-3.5-flash": "gemini-1.5-flash",
+        "gemini-1.5-flash": "gemini-1.5-flash",
+        "gemini-2.0-flash": "gemini-2.0-flash-exp"
+    }
+    
+    real_api_model_name = model_mapping.get(selected_model_display, "gemini-1.5-flash")
+    model_name = f"models/{real_api_model_name}"
 
     model = genai.GenerativeModel(model_name)
 
@@ -327,9 +318,12 @@ with tab_ext:
 
     with col_left_e:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Ngoại thất)", expanded=True):
-            user_api_key_ext = st.text_input("Gemini API Key:", type="password", key="api_key_ext_input")
+            user_api_key_ext = st.text_input("Gemini API Key (Tùy chọn):", type="password", key="api_key_ext_input")
             api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
-            # Danh sách mô hình Gemini mới nhất
+            # Tick xanh siêu gọn thay vì đoạn text dài
+            if secret_api_key and not user_api_key_ext:
+                st.caption("✅ **Đã kết nối Key hệ thống**")
+                
             selected_model_ext = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro", "gemini-3.5-flash"], key="model_ext")
             light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=0, key="light_ext")
 
@@ -407,9 +401,12 @@ with tab_int:
 
     with col_left_i:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Nội thất)", expanded=True):
-            user_api_key_int = st.text_input("Gemini API Key:", type="password", key="api_key_int_input")
+            user_api_key_int = st.text_input("Gemini API Key (Tùy chọn):", type="password", key="api_key_int_input")
             api_key_int = user_api_key_int.strip() if user_api_key_int.strip() else secret_api_key
-            # Danh sách mô hình Gemini mới nhất
+            # Tick xanh siêu gọn thay vì đoạn text dài
+            if secret_api_key and not user_api_key_int:
+                st.caption("✅ **Đã kết nối Key hệ thống**")
+                
             selected_model_int = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro", "gemini-3.5-flash"], key="model_int")
             light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=0, key="light_int")
 

@@ -117,24 +117,48 @@ def show_success_dog():
         height=0,
     )
 
+# NÂNG CẤP KÉO THẢ TRỰC TIẾP (DRAG & DROP) CHO ẢNH XEM TRƯỚC
 def render_clickable_image(img_b64, caption, uploader_index):
     components.html(f"""
     <!DOCTYPE html>
     <html><head><style>
         body {{ margin: 0; background-color: transparent; font-family: sans-serif; }}
         .img-container {{ position: relative; width: 100%; height: 135px; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1.5px dashed #484c5a; transition: 0.25s; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; }}
-        .img-container:hover {{ border-color: #28a745; box-shadow: 0 0 12px rgba(40,167,69,0.35); }}
-        .img-container img {{ max-height: 125px; width: 100%; object-fit: contain; display: block; }}
-        .overlay-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 700; font-size: 0.82rem; background: rgba(38,39,48,0.92); padding: 6px 12px; border-radius: 16px; opacity: 0; transition: 0.25s; pointer-events: none; border: 1px solid #28a745; }}
-        .img-container:hover .overlay-text {{ opacity: 1; }}
+        .img-container:hover, .img-container.dragover {{ border-color: #28a745; box-shadow: 0 0 12px rgba(40,167,69,0.5); }}
+        .img-container img {{ max-height: 125px; width: 100%; object-fit: contain; display: block; transition: opacity 0.2s; }}
+        .img-container:hover img, .img-container.dragover img {{ opacity: 0.4; }}
+        .overlay-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 700; font-size: 0.82rem; background: rgba(38,39,48,0.92); padding: 6px 12px; border-radius: 16px; opacity: 0; transition: 0.25s; pointer-events: none; border: 1px solid #28a745; text-align: center; white-space: nowrap; }}
+        .img-container:hover .overlay-text, .img-container.dragover .overlay-text {{ opacity: 1; }}
         .caption-text {{ text-align: center; color: #a0a0a0; font-size: 0.75rem; margin-top: 3px; font-weight: 500; }}
     </style></head>
     <body>
-        <div class="img-container" onclick="try{{window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}].click();}}catch(e){{}}">
+        <div class="img-container" id="dropzone">
             <img src="data:image/jpeg;base64,{img_b64}" />
-            <div class="overlay-text">📷 Nhấp để thay đổi</div>
+            <div class="overlay-text">📷 Đổi ảnh (Nhấp / Kéo thả)</div>
         </div>
         <div class="caption-text">{caption}</div>
+        <script>
+        const dz = document.getElementById('dropzone');
+        // Kích hoạt Upload khi Nhấp
+        dz.addEventListener('click', () => {{
+            try {{ window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}].click(); }} catch(e) {{}}
+        }});
+        // Kích hoạt Upload khi Kéo-Thả
+        dz.addEventListener('dragover', (e) => {{ e.preventDefault(); dz.classList.add('dragover'); }});
+        dz.addEventListener('dragleave', (e) => {{ e.preventDefault(); dz.classList.remove('dragover'); }});
+        dz.addEventListener('drop', (e) => {{
+            e.preventDefault(); dz.classList.remove('dragover');
+            if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {{
+                try {{
+                    const input = window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}];
+                    const dt = new DataTransfer();
+                    dt.items.add(e.dataTransfer.files[0]);
+                    input.files = dt.files;
+                    input.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }} catch(err) {{}}
+            }}
+        }});
+        </script>
     </body></html>
     """, height=160)
 
@@ -189,6 +213,11 @@ button[aria-selected="true"] { background-color: #262730 !important; color: #28a
 button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 42px !important; border-radius: 6px !important; font-weight: 700 !important; font-size: 0.95rem !important; transition: 0.2s !important; }
 button[kind="primary"]:hover { background-color: #218838 !important; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(40,167,69,0.3); }
 div[data-testid="stSelectbox"] label { font-size: 0.85rem !important; font-weight: 600 !important; color: #a0a0a0 !important;}
+
+/* ================= ẨN KHUNG FILE UPLOAD MẶC ĐỊNH SAU KHI TẢI LÊN ================= */
+[data-testid="stUploadedFile"] { display: none !important; }
+[data-testid="stFileUploader"] > section:nth-child(2) { display: none !important; }
+[data-testid="stFileUploader"] > div > div:nth-child(2) { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -272,7 +301,7 @@ def fetch_models(api_key):
 # HÀM GỌI API GEMINI (TÍCH HỢP TOKENS CHUẨN: @ảnh phác thảo & @ảnh tham chiếu)
 def process_gemini_analysis_bilingual(
     api_key, model_display, light_opt, context_opt, film_opt, 
-    sketch_img, ref_img, extra_notes, only_light_sketch=False, only_light_ref=False, is_interior=False
+    sketch_img, ref_img, extra_notes, only_light_ref=False, is_interior=False
 ):
     model = get_cached_model(api_key, model_display)
 
@@ -291,7 +320,6 @@ def process_gemini_analysis_bilingual(
 
     film_instruction = "Apply natural true-to-life colors without any film filter." if ("B0" in film_opt or "F0" in film_opt) else f"Apply {clean_film} photography style and color grading."
 
-    # XỬ LÝ LOGIC TAG @ảnh phác thảo VÀ @ảnh tham chiếu CHO GOOGLE LABS
     ref_instruction = ""
     tag_requirement = ""
 
@@ -314,14 +342,6 @@ def process_gemini_analysis_bilingual(
     else:
         tag_requirement = "CRITICAL: You MUST explicitly include the exact text tag '@ảnh phác thảo' naturally within BOTH the English and Vietnamese paragraphs to reference the input image. Example: 'A modern architecture based on @ảnh phác thảo...'. DO NOT translate this tag."
 
-    sketch_light_instruction = ""
-    if only_light_sketch:
-        sketch_light_instruction = """
-        SKETCH IMAGE LIGHTING PRESERVATION:
-        Analyze the lighting, shadows, and mood directly baked into the first image (Sketch Image). 
-        Instruct the prompt to strictly preserve and enhance the exact lighting conditions seen in @ảnh phác thảo. DO NOT invent new lighting scenarios that contradict the sketch image.
-        """
-
     system_instruction = f"""
     You are an expert architectural prompt engineer specializing in GOOGLE LABS FLOW (ImageFX / Imagen model).
     Analyze the {domain} images and write a highly detailed, natural English description, then translate it into Vietnamese.
@@ -330,7 +350,6 @@ def process_gemini_analysis_bilingual(
     1. AUTOMATIC CAMERA ANGLE: Carefully analyze the first image (Sketch) to determine the exact camera angle and perspective (e.g., strictly frontal flat elevation, 3/4 architectural perspective, bird's-eye view, eye-level wide angle). Incorporate this perspective into the description.
     2. OVERRIDE RULE: If user provided extra notes, prioritize the user's note over the image details.
     {ref_instruction}
-    {sketch_light_instruction}
     3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags (--ar, --v), resolution buzzwords, or render engine names. DO NOT bold or format the tags (@ảnh phác thảo, @ảnh tham chiếu).
 
     OUTPUT STRUCTURE REQUIREMENT:
@@ -402,11 +421,8 @@ with tab_ext:
 
     with col_right_e:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
-            r_head1_e, r_head2_e = st.columns([0.65, 0.35], vertical_alignment="bottom")
-            with r_head1_e:
-                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
-            with r_head2_e:
-                only_light_sketch_ext = st.checkbox("Chỉ lấy sáng", value=False, key="light_sketch_ext", help="Bảo tồn tuyệt đối ánh sáng gốc của bản vẽ")
+            # XÓA CHECKBOX CHỈ LẤY SÁNG KHỎI PHẦN PHÁC THẢO
+            st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
 
             sketch_file_ext = st.file_uploader("Tải ảnh phác thảo Ngoại thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="s_up_ext")
             sketch_img_ext = None
@@ -416,11 +432,11 @@ with tab_ext:
 
             st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
             
-            # Giao diện Tải ảnh tham chiếu kèm Checkbox Chỉ lấy sáng
             r_col1_e, r_col2_e = st.columns([0.65, 0.35], vertical_alignment="bottom")
             with r_col1_e:
                 st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
             with r_col2_e:
+                # CHECKBOX CHỈ GIỮ LẠI Ở ĐÂY
                 only_light_ref_ext = st.checkbox("Chỉ lấy sáng", value=False, key="light_ref_ext", help="Chỉ mượn ánh sáng và nhiệt độ màu của ảnh này")
                 
             ref_file_ext = st.file_uploader("Tải ảnh tham chiếu (Tùy chọn)", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="r_up_ext")
@@ -441,7 +457,7 @@ with tab_ext:
                 en_res, vi_res = process_gemini_analysis_bilingual(
                     api_key_ext, selected_model_ext, light_ext, context_ext, film_ext, 
                     sketch_img_ext, ref_img_ext, extra_notes_ext, 
-                    only_light_sketch_ext, only_light_ref_ext, is_interior=False
+                    only_light_ref_ext, is_interior=False
                 )
                 st.session_state.prompts["ext"]["en"] = en_res
                 st.session_state.prompts["ext"]["vi"] = vi_res
@@ -484,11 +500,8 @@ with tab_int:
 
     with col_right_i:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
-            r_head1_i, r_head2_i = st.columns([0.65, 0.35], vertical_alignment="bottom")
-            with r_head1_i:
-                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
-            with r_head2_i:
-                only_light_sketch_int = st.checkbox("Chỉ lấy sáng", value=False, key="light_sketch_int", help="Bảo tồn tuyệt đối ánh sáng gốc của bản vẽ")
+            # XÓA CHECKBOX CHỈ LẤY SÁNG KHỎI PHẦN PHÁC THẢO
+            st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
 
             sketch_file_int = st.file_uploader("Tải ảnh phác thảo Nội thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="s_up_int")
             sketch_img_int = None
@@ -502,6 +515,7 @@ with tab_int:
             with r_col1_i:
                 st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
             with r_col2_i:
+                # CHECKBOX CHỈ GIỮ LẠI Ở ĐÂY
                 only_light_ref_int = st.checkbox("Chỉ lấy sáng", value=False, key="light_ref_int", help="Chỉ mượn ánh sáng và nhiệt độ màu của ảnh này")
 
             ref_file_int = st.file_uploader("Tải ảnh tham chiếu Nội thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="r_up_int")
@@ -523,7 +537,7 @@ with tab_int:
                     en_res, vi_res = process_gemini_analysis_bilingual(
                         api_key_int, selected_model_int, light_int, context_int, film_int, 
                         sketch_img_int, ref_img_int, extra_notes_int, 
-                        only_light_sketch_int, only_light_ref_int, is_interior=True
+                        only_light_ref_int, is_interior=True
                     )
                     st.session_state.prompts["int"]["en"] = en_res
                     st.session_state.prompts["int"]["vi"] = vi_res

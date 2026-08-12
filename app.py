@@ -25,7 +25,7 @@ if "show_dog_modal" not in st.session_state:
 
 # Khởi tạo danh sách model mặc định toàn cục
 if "api_models" not in st.session_state:
-    st.session_state.api_models = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash-exp"]
+    st.session_state.api_models = ["gemini-pro-latest", "gemini-flash-latest"]
 
 
 # Hàm làm sạch văn bản & xóa từ khóa cấm nhiễu của Imagen
@@ -244,7 +244,7 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI
+# HÀM XỬ LÝ GỌI API GEMINI (PHIÊN BẢN BULLETPROOF - CHỐNG RỖNG KẾT QUẢ)
 def process_gemini_analysis_split(
     api_key,
     selected_model_display,
@@ -255,9 +255,16 @@ def process_gemini_analysis_split(
     is_interior=False,
 ):
     genai.configure(api_key=api_key)
-    
     model_name = f"models/{selected_model_display}"
     model = genai.GenerativeModel(model_name)
+
+    # Tắt hoàn toàn bộ lọc an toàn để AI không bị câm lặng
+    safety_settings = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"}
+    ]
 
     domain = "INTERIOR ARCHITECTURE" if is_interior else "EXTERIOR ARCHITECTURE"
 
@@ -266,17 +273,16 @@ def process_gemini_analysis_split(
     Analyze the sketch image of {domain} and write a 4-part natural English description.
 
     CRITICAL OVERRIDE RULE FOR USER NOTES:
-    - If the user provided extra notes (e.g. "flat white ceiling", "oak wood floor"), prioritize the user's note over the sketch line darkness/shadows. Ignore darkness in the sketch lines that could be misread as gray material.
+    - If the user provided extra notes, prioritize the user's note over the sketch line darkness/shadows. 
 
     FORMAT RULES FOR GOOGLE LABS (IMAGEFX):
     - Write strictly in clear English natural sentences.
-    - DO NOT use Midjourney tags (--ar, --v), resolution buzzwords (8k, 16k, photorealistic), or render engine names (Corona, Vray).
-    - Lock camera angle and scale based on the provided sketch.
+    - DO NOT use Midjourney tags (--ar, --v), resolution buzzwords (8k, 16k, photorealistic), or render engine names.
 
     OUTPUT STRUCTURE REQUIREMENT:
     Return EXACTLY 4 sections separated by `===SECTION_SPLIT===`:
     Section 1 (Subject & Style): A sentence starting with "A professional architectural photograph of a..." describing space type and style.
-    Section 2 (Materials & Colors): A sentence starting with "The space features..." listing exact materials and colors (honoring user notes).
+    Section 2 (Materials & Colors): A sentence starting with "The space features..." listing exact materials and colors.
     Section 3 (Lighting & Environment): A sentence describing the lighting: "{lighting_opt}".
     Section 4 (Camera Specs & Depth): A sentence describing camera technique: "Shot on Hasselblad H6D-100c, wide-angle lens, straight vertical lines, eye-level view, crisp surface textures."
     """
@@ -287,17 +293,33 @@ def process_gemini_analysis_split(
     if extra_notes:
         content_inputs.append(f"USER MATERIAL/COLOR OVERRIDE NOTES: {extra_notes}")
 
-    response = model.generate_content(content_inputs)
-    result_text = response.text.strip()
+    try:
+        response = model.generate_content(content_inputs, safety_settings=safety_settings)
+        result_text = response.text.strip()
+    except Exception as e:
+        # Nếu AI báo lỗi (Vd: Server quá tải), hiện lỗi thẳng vào ô 1
+        return [f"Lỗi phản hồi từ AI: {str(e)}", "", "", ""]
 
+    if not result_text:
+        return ["AI trả về kết quả rỗng (Có thể do lỗi mạng hoặc ảnh không hợp lệ).", "", "", ""]
+
+    # PHÂN TÁCH KẾT QUẢ VÀ BẢO VỆ DỮ LIỆU
     if "===SECTION_SPLIT===" in result_text:
         parts = result_text.split("===SECTION_SPLIT===")
+        while len(parts) < 4: parts.append("")
         return [clean_prompt_text(p) for p in parts[:4]]
     else:
-        sentences = [clean_prompt_text(s) for s in result_text.split(".") if s.strip()]
-        while len(sentences) < 4:
-            sentences.append("")
-        return sentences[:4]
+        # DỰ PHÒNG: Nếu AI trả văn bản thường mà quên phân tách, nhét tất cả vào Box 1
+        parts = [p.strip() for p in re.split(r'\n+', result_text) if p.strip()]
+        if len(parts) >= 4:
+            return [clean_prompt_text(p) for p in parts[:4]]
+        else:
+            return [
+                clean_prompt_text(result_text), 
+                "⚠️ LƯU Ý: AI không tách đúng 4 ô.", 
+                "Toàn bộ kết quả đã được gộp chung ở Ô số 1 bên trên.", 
+                "Bạn có thể sao chép trực tiếp nội dung ở Ô 1 để sử dụng."
+            ]
 
 
 # KHỞI TẠO TABS
@@ -327,12 +349,10 @@ with tab_ext:
                         for m in genai.list_models():
                             if 'generateContent' in m.supported_generation_methods:
                                 name = m.name.replace("models/", "")
-                                # BỘ LỌC CỨNG: Chỉ giữ dòng Pro và Flash, loại bỏ rác (lite, preview, image, nano)
                                 if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
                                     fetched_models.append(name)
                         
                         if fetched_models:
-                            # Sắp xếp để bản Pro lên đầu danh sách (ưu tiên cho tác vụ kiến trúc)
                             fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
                             st.session_state.api_models = fetched_models
                             st.rerun()
@@ -367,7 +387,6 @@ with tab_ext:
         b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.ext_box3, height=65, key="box3_ext")
         b4_ext = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.ext_box4, height=65, key="box4_ext")
 
-        # NÚT COPY CHỈ HIỆN KHI CÓ PROMPT
         if st.session_state.ext_box1:
             full_ext_prompt = f"{b1_ext} {b2_ext} {b3_ext} {b4_ext}".strip()
             st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
@@ -436,7 +455,6 @@ with tab_int:
                         for m in genai.list_models():
                             if 'generateContent' in m.supported_generation_methods:
                                 name = m.name.replace("models/", "")
-                                # BỘ LỌC CỨNG: Chỉ giữ dòng Pro và Flash, loại bỏ rác
                                 if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
                                     fetched_models.append(name)
                         
@@ -475,7 +493,6 @@ with tab_int:
         b3_int = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.int_box3, height=65, key="box3_int")
         b4_int = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.int_box4, height=65, key="box4_int")
 
-        # NÚT COPY CHỈ HIỆN KHI CÓ PROMPT
         if st.session_state.int_box1:
             full_int_prompt = f"{b1_int} {b2_int} {b3_int} {b4_int}".strip()
             st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)

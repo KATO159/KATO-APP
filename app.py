@@ -100,7 +100,7 @@ def get_transparent_dog_b64():
     return None
 
 
-# Hiển thị khung Prompt chuẩn 50-50 khóa bằng đúng 2 đường màu đỏ
+# Hiển thị khung Prompt chuẩn 50-50 chia đều theo đúng 2 đường màu đỏ (Top & Bottom Bounds)
 def render_prompt_card(title: str, text: str, box_id: str):
   escaped_text = html.escape(text) if text else ""
   html_code = f"""
@@ -115,7 +115,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
             .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.88rem; }}
             .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.65rem 0.75rem; height: 285px; min-height: 285px; max-height: 285px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.85rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.65rem 0.75rem; height: 225px; min-height: 225px; max-height: 225px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.85rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -149,7 +149,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-  components.html(html_code, height=335)
+  components.html(html_code, height=265)
 
 
 # Hiển thị ảnh xem trước
@@ -258,10 +258,10 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao 335px */
+/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao */
 iframe[data-testid="stCustomComponentV1"], iframe {
     width: 100% !important;
-    min-height: 335px !important;
+    min-height: 265px !important;
     display: block !important;
 }
 
@@ -284,31 +284,44 @@ div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
     justify-content: space-between !important;
 }
 
-/* Khung Expander Cột 1 và Cột 3 tự động giãn 100% chiều cao bằng đáy Cột 2 */
+/* ÉP KHUNG ELEMENT CONTAINERS CHỨA EXPANDER GIÃN 100% CHIỀU CAO */
+div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] > div[data-testid="element-container"]:has(div[data-testid="stExpander"]) {
+    height: 100% !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* KHUNG EXPANDER Ở CỘT TRÁI VÀ CỘT PHẢI DÃN TẢI 100% CHIỀU CAO BẰNG CỘT GIỮA */
 div[data-testid="stExpander"] {
     background-color: #1e1e24 !important;
     border: 1px solid #363945 !important;
     border-radius: 10px !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
     height: 100% !important;
+    flex: 1 !important;
     display: flex !important;
     flex-direction: column !important;
 }
+
 div[data-testid="stExpander"] details {
     display: flex !important;
     flex-direction: column !important;
     height: 100% !important;
     flex: 1 !important;
 }
+
 div[data-testid="stExpander"] details summary {
     font-weight: 600 !important;
     font-size: 0.9rem !important;
     color: #e0e0e0 !important;
     padding: 0.35rem 0.7rem !important;
 }
+
 div[data-testid="stExpander"] details > div[role="region"] {
     overflow-y: auto !important;
     flex: 1 !important;
+    height: 100% !important;
     padding: 0.3rem 0.4rem !important;
 }
 

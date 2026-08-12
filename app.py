@@ -100,7 +100,7 @@ def get_transparent_dog_b64():
     return None
 
 
-# Hiển thị khung Prompt
+# Hiển thị khung Prompt chuẩn 50-50 khóa bằng đáy Panel trái
 def render_prompt_card(title: str, text: str, box_id: str):
   escaped_text = html.escape(text) if text else ""
   html_code = f"""
@@ -112,10 +112,10 @@ def render_prompt_card(title: str, text: str, box_id: str):
             * {{ box-sizing: border-box; }}
             body {{ margin: 0; padding: 0; background-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e0e0e0; overflow: hidden; }}
             .header-row {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }}
-            .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.9rem; }}
-            .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 3px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
+            .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.88rem; }}
+            .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 280px; min-height: 280px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.6rem 0.75rem; height: 205px; min-height: 205px; max-height: 205px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.85rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -149,7 +149,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-  components.html(html_code, height=320)
+  components.html(html_code, height=245)
 
 
 # Hiển thị ảnh xem trước
@@ -258,10 +258,10 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao 320px */
+/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao 245px */
 iframe[data-testid="stCustomComponentV1"], iframe {
     width: 100% !important;
-    min-height: 320px !important;
+    min-height: 245px !important;
     display: block !important;
 }
 

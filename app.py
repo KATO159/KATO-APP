@@ -25,7 +25,7 @@ if "show_dog_modal" not in st.session_state:
 
 # Khởi tạo danh sách model mặc định toàn cục
 if "api_models" not in st.session_state:
-    st.session_state.api_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp", "gemini-pro-vision"]
+    st.session_state.api_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"]
 
 
 # Hàm làm sạch văn bản & xóa từ khóa cấm nhiễu của Imagen
@@ -256,7 +256,6 @@ def process_gemini_analysis_split(
 ):
     genai.configure(api_key=api_key)
     
-    # Sử dụng chính xác model từ list được API trả về
     model_name = f"models/{selected_model_display}"
     model = genai.GenerativeModel(model_name)
 
@@ -316,7 +315,6 @@ with tab_ext:
             user_api_key_ext = st.text_input(api_label_ext, type="password", key="api_key_ext_input")
             api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
             
-            # Selectbox danh sách model và Nút fetch model động
             selected_model_ext = st.selectbox("Model AI:", st.session_state.api_models, key="model_ext")
             
             if st.button("🔄 Tải danh sách Model khả dụng từ Server", key="fetch_models_ext", help="Lấy danh sách các Model mà Google cấp quyền cho API Key của bạn"):
@@ -363,10 +361,13 @@ with tab_ext:
         b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.ext_box3, height=65, key="box3_ext")
         b4_ext = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.ext_box4, height=65, key="box4_ext")
 
-        full_ext_prompt = f"{b1_ext} {b2_ext} {b3_ext} {b4_ext}".strip()
-        if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_ext"):
-            st.write("Đã sẵn sàng dán vào Google Labs Flow:")
-            st.code(full_ext_prompt, language="text")
+        # NÚT COPY ĐÃ ĐƯỢC ẨN: Chỉ hiện ra khi có Prompt
+        if st.session_state.ext_box1:
+            full_ext_prompt = f"{b1_ext} {b2_ext} {b3_ext} {b4_ext}".strip()
+            st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
+            if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_ext"):
+                st.write("Đã sẵn sàng dán vào Google Labs Flow:")
+                st.code(full_ext_prompt, language="text")
 
     with col_right_e:
         with st.expander("🖼️ Tải ảnh phác thảo & Chỉ định màu", expanded=True):
@@ -385,7 +386,8 @@ with tab_ext:
                 key=f"notes_ext_{st.session_state.uploader_key_ext}"
             )
 
-            analyze_btn_ext = st.button("Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_ext")
+            # ĐÂY MỚI LÀ NÚT TẠO PROMPT
+            analyze_btn_ext = st.button("🚀 Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_ext")
 
     if analyze_btn_ext:
         if not api_key_ext:
@@ -463,10 +465,13 @@ with tab_int:
         b3_int = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.int_box3, height=65, key="box3_int")
         b4_int = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.int_box4, height=65, key="box4_int")
 
-        full_int_prompt = f"{b1_int} {b2_int} {b3_int} {b4_int}".strip()
-        if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_int"):
-            st.write("Đã sẵn sàng dán vào Google Labs Flow:")
-            st.code(full_int_prompt, language="text")
+        # NÚT COPY ĐÃ ĐƯỢC ẨN: Chỉ hiện ra khi có Prompt
+        if st.session_state.int_box1:
+            full_int_prompt = f"{b1_int} {b2_int} {b3_int} {b4_int}".strip()
+            st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
+            if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_int"):
+                st.write("Đã sẵn sàng dán vào Google Labs Flow:")
+                st.code(full_int_prompt, language="text")
 
     with col_right_i:
         with st.expander("🖼️ Tải ảnh phác thảo & Chỉ định màu", expanded=True):
@@ -485,7 +490,8 @@ with tab_int:
                 key=f"notes_int_{st.session_state.uploader_key_int}"
             )
 
-            analyze_btn_int = st.button("Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_int")
+            # ĐÂY MỚI LÀ NÚT TẠO PROMPT
+            analyze_btn_int = st.button("🚀 Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_int")
 
     if analyze_btn_int:
         if not api_key_int:

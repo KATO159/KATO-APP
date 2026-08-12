@@ -100,7 +100,7 @@ def get_transparent_dog_b64():
     return None
 
 
-# Hiển thị khung Prompt chuẩn 50-50 khóa bằng đáy Panel trái
+# Hiển thị khung Prompt chuẩn 50-50 khóa bằng đúng đáy Panel trái
 def render_prompt_card(title: str, text: str, box_id: str):
   escaped_text = html.escape(text) if text else ""
   html_code = f"""
@@ -115,7 +115,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
             .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.88rem; }}
             .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.6rem 0.75rem; height: 205px; min-height: 205px; max-height: 205px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.85rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.65rem 0.75rem; height: 270px; min-height: 270px; max-height: 270px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.85rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -149,7 +149,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-  components.html(html_code, height=245)
+  components.html(html_code, height=310)
 
 
 # Hiển thị ảnh xem trước
@@ -258,10 +258,10 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao 245px */
+/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao 310px */
 iframe[data-testid="stCustomComponentV1"], iframe {
     width: 100% !important;
-    min-height: 245px !important;
+    min-height: 310px !important;
     display: block !important;
 }
 
@@ -332,7 +332,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] .stCaption p {
 }
 
 .custom-header-title { white-space: nowrap !important; font-size: 1.2rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; line-height: 32px !important; }
-.dashed-divider { border: none !important; border-top: 1.5px dashed #484c5a !important; margin: 0.2rem 0 0.2rem 0 !important; width: 100% !important; }
 
 div[data-testid="stFileUploader"]:has(div[data-testid="stFileUploaderFileData"]),
 div[data-testid="stFileUploader"]:has(span[data-testid="stFileUploaderFileName"]),
@@ -394,6 +393,7 @@ if st.session_state.get("show_dog_modal", False):
   )
 
 # ==================== DANH SÁCH TÙY CHỌN ====================
+# Kịch bản ánh sáng Ngoại thất (7 tùy chọn)
 lighting_ext_options = [
     "A1 - Nắng sáng sớm trong trẻo (Bright Early Morning Sun)",
     (
@@ -413,6 +413,7 @@ lighting_ext_options = [
     "A7 - Sau mưa / Sân ướt phản chiếu (Post-Rain Wet Surface Reflections)",
 ]
 
+# Bối cảnh Môi trường Ngoại thất (4 tùy chọn)
 context_ext_options = [
     "C1 - Phố thị hiện đại (Urban Street & Paved Sidewalk - Natural Layout)",
     (
@@ -429,6 +430,7 @@ context_ext_options = [
     ),
 ]
 
+# Hiệu ứng hình ảnh & Nhiếp ảnh Ngoại thất (6 tùy chọn)
 film_ext_options = [
     "B0 - None (Màu nguyên bản công trình)",
     (
@@ -447,6 +449,7 @@ film_ext_options = [
     ),
 ]
 
+# Kịch bản ánh sáng Nội thất (10 tùy chọn)
 lighting_int_options = [
     "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
     "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
@@ -469,6 +472,7 @@ lighting_int_options = [
     "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)",
 ]
 
+# Bối cảnh Môi trường Nội thất (4 tùy chọn)
 context_int_options = [
     (
         "C1 - View sân vườn nhiệt đới qua kính (Glass Wall to Tropical Garden"
@@ -488,6 +492,7 @@ context_int_options = [
     ),
 ]
 
+# Hiệu ứng hình ảnh & Nhiếp ảnh Nội thất (8 tùy chọn)
 film_int_options = [
     "F0 - None (Màu nguyên bản chất liệu)",
     (
@@ -741,7 +746,7 @@ with tab_ext:
         prompt1_text_ext,
         "p1_ext",
     )
-    st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top: 6px;"></div>', unsafe_allow_html=True)
     prompt2_text_ext = (
         st.session_state.p2_res_ext
         if st.session_state.p2_res_ext
@@ -939,7 +944,7 @@ with tab_int:
         prompt1_text_int,
         "p1_int",
     )
-    st.markdown('<hr class="dashed-divider" />', unsafe_allow_html=True)
+    st.markdown('<div style="margin-top: 6px;"></div>', unsafe_allow_html=True)
     prompt2_text_int = (
         st.session_state.p2_res_int
         if st.session_state.p2_res_int

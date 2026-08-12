@@ -11,8 +11,8 @@ import streamlit.components.v1 as components
 # Cấu hình trang Streamlit
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
-# Khởi tạo session_state cho 4 ô kết quả Ngoại thất và Nội thất
-for key in ["ext_box1", "ext_box2", "ext_box3", "ext_box4", "int_box1", "int_box2", "int_box3", "int_box4"]:
+# KHẮC PHỤC LỖI UI: Đồng nhất chính xác tên biến Session State với Key của Text Area
+for key in ["box1_ext", "box2_ext", "box3_ext", "box4_ext", "box1_int", "box2_int", "box3_int", "box4_int"]:
     if key not in st.session_state:
         st.session_state[key] = ""
 
@@ -244,7 +244,7 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI (PHIÊN BẢN BULLETPROOF - CHỐNG RỖNG KẾT QUẢ)
+# HÀM XỬ LÝ GỌI API GEMINI 
 def process_gemini_analysis_split(
     api_key,
     selected_model_display,
@@ -258,7 +258,6 @@ def process_gemini_analysis_split(
     model_name = f"models/{selected_model_display}"
     model = genai.GenerativeModel(model_name)
 
-    # Tắt hoàn toàn bộ lọc an toàn để AI không bị câm lặng
     safety_settings = [
         {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
         {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -297,19 +296,16 @@ def process_gemini_analysis_split(
         response = model.generate_content(content_inputs, safety_settings=safety_settings)
         result_text = response.text.strip()
     except Exception as e:
-        # Nếu AI báo lỗi (Vd: Server quá tải), hiện lỗi thẳng vào ô 1
         return [f"Lỗi phản hồi từ AI: {str(e)}", "", "", ""]
 
     if not result_text:
         return ["AI trả về kết quả rỗng (Có thể do lỗi mạng hoặc ảnh không hợp lệ).", "", "", ""]
 
-    # PHÂN TÁCH KẾT QUẢ VÀ BẢO VỆ DỮ LIỆU
     if "===SECTION_SPLIT===" in result_text:
         parts = result_text.split("===SECTION_SPLIT===")
         while len(parts) < 4: parts.append("")
         return [clean_prompt_text(p) for p in parts[:4]]
     else:
-        # DỰ PHÒNG: Nếu AI trả văn bản thường mà quên phân tách, nhét tất cả vào Box 1
         parts = [p.strip() for p in re.split(r'\n+', result_text) if p.strip()]
         if len(parts) >= 4:
             return [clean_prompt_text(p) for p in parts[:4]]
@@ -339,7 +335,7 @@ with tab_ext:
             
             selected_model_ext = st.selectbox("Model AI:", st.session_state.api_models, key="model_ext")
             
-            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_ext", help="Lọc các Model xịn nhất (Pro/Flash)"):
+            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_ext"):
                 if not api_key_ext:
                     st.error("Vui lòng nhập API Key trước!")
                 else:
@@ -351,7 +347,6 @@ with tab_ext:
                                 name = m.name.replace("models/", "")
                                 if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
                                     fetched_models.append(name)
-                        
                         if fetched_models:
                             fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
                             st.session_state.api_models = fetched_models
@@ -366,29 +361,30 @@ with tab_ext:
     with col_main_e:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
         
-        b1_ext = st.text_area("1. Phong cách & Không gian (Box 1):", value=st.session_state.ext_box1, height=65, key="box1_ext")
-        b2_ext = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", value=st.session_state.ext_box2, height=85, key="box2_ext")
+        # BỎ THUỘC TÍNH VALUE Ở ĐÂY ĐỂ TRÁNH LỖI XUNG ĐỘT STATE CỦA STREAMLIT
+        b1_ext = st.text_area("1. Phong cách & Không gian (Box 1):", key="box1_ext", height=65)
+        b2_ext = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", key="box2_ext", height=85)
         
         st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
         tag_cols_e = st.columns(4)
         if tag_cols_e[0].button("+ Gỗ ốp mặt tiền", key="tag_e1"):
-            st.session_state.ext_box2 += ", slatted timber facade cladding"
+            st.session_state.box2_ext += ", slatted timber facade cladding"
             st.rerun()
         if tag_cols_e[1].button("+ Bê tông mài", key="tag_e2"):
-            st.session_state.ext_box2 += ", polished concrete panels"
+            st.session_state.box2_ext += ", polished concrete panels"
             st.rerun()
         if tag_cols_e[2].button("+ Cửa kính khung đen", key="tag_e3"):
-            st.session_state.ext_box2 += ", black metal frame glass doors"
+            st.session_state.box2_ext += ", black metal frame glass doors"
             st.rerun()
         if tag_cols_e[3].button("+ Đá ốp tự nhiên", key="tag_e4"):
-            st.session_state.ext_box2 += ", natural stone veneer wall"
+            st.session_state.box2_ext += ", natural stone veneer wall"
             st.rerun()
 
-        b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.ext_box3, height=65, key="box3_ext")
-        b4_ext = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.ext_box4, height=65, key="box4_ext")
+        b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", key="box3_ext", height=65)
+        b4_ext = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", key="box4_ext", height=65)
 
-        if st.session_state.ext_box1:
-            full_ext_prompt = f"{b1_ext} {b2_ext} {b3_ext} {b4_ext}".strip()
+        if st.session_state.box1_ext:
+            full_ext_prompt = f"{st.session_state.box1_ext} {st.session_state.box2_ext} {st.session_state.box3_ext} {st.session_state.box4_ext}".strip()
             st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
             if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_ext"):
                 st.write("Đã sẵn sàng dán vào Google Labs Flow:")
@@ -423,10 +419,11 @@ with tab_ext:
                 boxes = process_gemini_analysis_split(
                     api_key_ext, selected_model_ext, light_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False
                 )
-                st.session_state.ext_box1 = boxes[0]
-                st.session_state.ext_box2 = boxes[1]
-                st.session_state.ext_box3 = boxes[2]
-                st.session_state.ext_box4 = boxes[3]
+                # Ghi thẳng vào khóa UI của Text Area
+                st.session_state.box1_ext = boxes[0]
+                st.session_state.box2_ext = boxes[1]
+                st.session_state.box3_ext = boxes[2]
+                st.session_state.box4_ext = boxes[3]
                 st.session_state.show_dog_modal = True
                 st.rerun()
             except Exception as e:
@@ -445,7 +442,7 @@ with tab_int:
             
             selected_model_int = st.selectbox("Model AI:", st.session_state.api_models, key="model_int")
             
-            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_int", help="Lọc các Model xịn nhất (Pro/Flash)"):
+            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_int"):
                 if not api_key_int:
                     st.error("Vui lòng nhập API Key trước!")
                 else:
@@ -457,7 +454,6 @@ with tab_int:
                                 name = m.name.replace("models/", "")
                                 if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
                                     fetched_models.append(name)
-                        
                         if fetched_models:
                             fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
                             st.session_state.api_models = fetched_models
@@ -472,29 +468,30 @@ with tab_int:
     with col_main_i:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
         
-        b1_int = st.text_area("1. Phong cách & Không gian (Box 1):", value=st.session_state.int_box1, height=65, key="box1_int")
-        b2_int = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", value=st.session_state.int_box2, height=85, key="box2_int")
+        # BỎ THUỘC TÍNH VALUE Ở ĐÂY ĐỂ TRÁNH LỖI XUNG ĐỘT STATE CỦA STREAMLIT
+        b1_int = st.text_area("1. Phong cách & Không gian (Box 1):", key="box1_int", height=65)
+        b2_int = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", key="box2_int", height=85)
         
         st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
         tag_cols_i = st.columns(4)
         if tag_cols_i[0].button("+ Trần sơn trắng", key="tag_i1"):
-            st.session_state.int_box2 += ", flat smooth white painted ceiling"
+            st.session_state.box2_int += ", flat smooth white painted ceiling"
             st.rerun()
         if tag_cols_i[1].button("+ Sàn gỗ Sồi", key="tag_i2"):
-            st.session_state.int_box2 += ", light oak timber floor"
+            st.session_state.box2_int += ", light oak timber floor"
             st.rerun()
         if tag_cols_i[2].button("+ Sofa da Cognac", key="tag_i3"):
-            st.session_state.int_box2 += ", plush cognac leather sofa"
+            st.session_state.box2_int += ", plush cognac leather sofa"
             st.rerun()
         if tag_cols_i[3].button("+ Lam gỗ Óc chó", key="tag_i4"):
-            st.session_state.int_box2 += ", slatted walnut wood wall panels"
+            st.session_state.box2_int += ", slatted walnut wood wall panels"
             st.rerun()
 
-        b3_int = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.int_box3, height=65, key="box3_int")
-        b4_int = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.int_box4, height=65, key="box4_int")
+        b3_int = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", key="box3_int", height=65)
+        b4_int = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", key="box4_int", height=65)
 
-        if st.session_state.int_box1:
-            full_int_prompt = f"{b1_int} {b2_int} {b3_int} {b4_int}".strip()
+        if st.session_state.box1_int:
+            full_int_prompt = f"{st.session_state.box1_int} {st.session_state.box2_int} {st.session_state.box3_int} {st.session_state.box4_int}".strip()
             st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
             if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_int"):
                 st.write("Đã sẵn sàng dán vào Google Labs Flow:")
@@ -529,10 +526,11 @@ with tab_int:
                 boxes = process_gemini_analysis_split(
                     api_key_int, selected_model_int, light_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True
                 )
-                st.session_state.int_box1 = boxes[0]
-                st.session_state.int_box2 = boxes[1]
-                st.session_state.int_box3 = boxes[2]
-                st.session_state.int_box4 = boxes[3]
+                # Ghi thẳng vào khóa UI của Text Area
+                st.session_state.box1_int = boxes[0]
+                st.session_state.box2_int = boxes[1]
+                st.session_state.box3_int = boxes[2]
+                st.session_state.box4_int = boxes[3]
                 st.session_state.show_dog_modal = True
                 st.rerun()
             except Exception as e:

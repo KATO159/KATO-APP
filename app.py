@@ -18,7 +18,8 @@ PROHIBITED_PATTERNS = re.compile(
 )
 
 def clean_prompt_text(text: str) -> str:
-    if not text: return ""
+    if not text:
+        return ""
     cleaned = PROHIBITED_PATTERNS.sub("", text)
     lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
     return "\n\n".join(lines).strip()
@@ -27,18 +28,26 @@ def clean_prompt_text(text: str) -> str:
 if "prompts" not in st.session_state:
     st.session_state.prompts = {"ext": {"en": "", "vi": ""}, "int": {"en": "", "vi": ""}}
 
+if "uploader_key_ext" not in st.session_state:
+    st.session_state.uploader_key_ext = 0
+if "uploader_key_int" not in st.session_state:
+    st.session_state.uploader_key_int = 0
+
 if "api_models" not in st.session_state:
     st.session_state.api_models = ["gemini-pro-latest", "gemini-flash-latest"]
+# ------------------------------------------------
 
-# ---------------- TỐI ƯU HÌNH ẢNH ----------------
+# TỐI ƯU HÓA HÌNH ẢNH (COMPRESSION)
 @st.cache_data(show_spinner=False, max_entries=10)
 def optimize_image_for_api(file_bytes: bytes) -> Image.Image:
     try:
         img = Image.open(io.BytesIO(file_bytes))
-        if img.mode != "RGB": img = img.convert("RGB")
+        if img.mode != "RGB":
+            img = img.convert("RGB")
         img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
         return img
-    except Exception: return None
+    except Exception as e:
+        return None
 
 @st.cache_data(show_spinner=False, max_entries=20)
 def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
@@ -53,7 +62,8 @@ def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
             img = img.convert("RGB")
             img.save(buffered, format="JPEG", quality=75, optimize=True)
         return base64.b64encode(buffered.getvalue()).decode()
-    except: return ""
+    except:
+        return ""
 
 @st.cache_resource(show_spinner=False)
 def load_cached_dog_image():
@@ -103,10 +113,11 @@ def show_success_dog():
             setTimeout(function() {{ if (modal && modal.parentNode) modal.parentNode.removeChild(modal); }}, 1800);
         }})();
         </script>
-        """, height=0
+        """,
+        height=0,
     )
 
-# NÂNG CẤP GIAO DIỆN XEM TRƯỚC (NÚT X + NHẤP ĐỔI ẢNH HOẠT ĐỘNG HOÀN HẢO)
+# ----------------- NÂNG CẤP GIAO DIỆN XEM TRƯỚC (CÓ NÚT X + KÉO THẢ) -----------------
 def render_clickable_image(img_b64, caption, uploader_index):
     dz_id = f"custom_dz_{uploader_index}"
     components.html(f"""
@@ -114,17 +125,17 @@ def render_clickable_image(img_b64, caption, uploader_index):
     <html><head><style>
         body {{ margin: 0; background-color: transparent; font-family: sans-serif; }}
         .img-container {{ position: relative; width: 100%; height: 140px; cursor: pointer; border-radius: 12px; overflow: hidden; border: 1.5px solid #363945; transition: 0.25s; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; box-sizing: border-box; }}
-        .img-container:hover {{ border-color: #28a745; box-shadow: 0 0 15px rgba(40,167,69,0.4); }}
+        .img-container:hover, .img-container.dragover {{ border-color: #28a745; box-shadow: 0 0 15px rgba(40,167,69,0.4); }}
         .img-container img {{ max-height: 130px; width: 100%; object-fit: contain; display: block; transition: opacity 0.2s; }}
-        .img-container:hover img {{ opacity: 0.3; }}
+        .img-container:hover img, .img-container.dragover img {{ opacity: 0.3; }}
         .overlay-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 700; font-size: 0.85rem; background: rgba(38,39,48,0.95); padding: 8px 16px; border-radius: 20px; opacity: 0; transition: 0.25s; pointer-events: none; border: 1.5px solid #28a745; text-align: center; white-space: nowrap; }}
-        .img-container:hover .overlay-text {{ opacity: 1; }}
-        .caption-text {{ text-align: center; color: #a0a0a0; font-size: 0.75rem; margin-top: 6px; font-weight: 600; text-transform: uppercase; }}
+        .img-container:hover .overlay-text, .img-container.dragover .overlay-text {{ opacity: 1; }}
+        .caption-text {{ text-align: center; color: #a0a0a0; font-size: 0.75rem; margin-top: 5px; font-weight: 600; text-transform: uppercase; }}
         
         .delete-btn {{
             position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); color: #fff;
             border-radius: 50%; width: 28px; height: 28px; display: flex; justify-content: center; align-items: center;
-            font-size: 14px; font-weight: bold; z-index: 10; transition: 0.2s; border: 1.5px solid rgba(255,255,255,0.3); cursor: pointer;
+            font-size: 14px; font-weight: bold; z-index: 10; transition: 0.2s; border: 1.5px solid rgba(255,255,255,0.3);
         }}
         .delete-btn:hover {{ background: #ff4b4b; border-color: #fff; transform: scale(1.1); color: white; }}
     </style></head>
@@ -132,33 +143,44 @@ def render_clickable_image(img_b64, caption, uploader_index):
         <div class="img-container" id="{dz_id}">
             <div class="delete-btn" onclick="deleteImage(event)" title="Xóa ảnh này">✕</div>
             <img src="data:image/jpeg;base64,{img_b64}" />
-            <div class="overlay-text">📷 Nhấp để đổi ảnh</div>
+            <div class="overlay-text">📷 Đổi ảnh (Nhấp / Kéo Thả)</div>
         </div>
         <div class="caption-text">{caption}</div>
         <script>
-        // Xóa ảnh
+        const dz = document.getElementById('{dz_id}');
+        
         function deleteImage(e) {{
-            e.stopPropagation();
+            e.stopPropagation(); 
             try {{
-                var uploaders = window.parent.document.querySelectorAll('[data-testid="stFileUploader"]');
-                var uploader = uploaders[{uploader_index}];
-                if(uploader) {{
-                    var delBtn = uploader.querySelector('button[aria-label="Remove file"], [data-testid="stUploadedFile"] button');
-                    if(delBtn) delBtn.click();
+                const uploaders = window.parent.document.querySelectorAll('[data-testid="stFileUploader"]');
+                const targetUploader = uploaders[{uploader_index}];
+                if(targetUploader) {{
+                    const delBtn = targetUploader.querySelector('button[aria-label="Remove file"], [data-testid="stUploadedFile"] button');
+                    if(delBtn) {{ delBtn.click(); }}
                 }}
-            }} catch(err) {{}}
+            }} catch(err) {{ console.error(err); }}
         }}
         
-        // Nhấp đổi ảnh
-        document.getElementById('{dz_id}').addEventListener('click', function() {{
-            try {{
-                var inputs = window.parent.document.querySelectorAll('input[type="file"]');
-                if (inputs[{uploader_index}]) inputs[{uploader_index}].click();
-            }} catch(e) {{}}
+        dz.addEventListener('click', () => {{
+            try {{ window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}].click(); }} catch(e) {{}}
+        }});
+        
+        dz.addEventListener('dragover', (e) => {{ e.preventDefault(); dz.classList.add('dragover'); }});
+        dz.addEventListener('dragleave', (e) => {{ e.preventDefault(); dz.classList.remove('dragover'); }});
+        dz.addEventListener('drop', (e) => {{
+            e.preventDefault(); dz.classList.remove('dragover');
+            if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {{
+                try {{
+                    const input = window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}];
+                    const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
+                    input.files = dt.files;
+                    input.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }} catch(err) {{}}
+            }}
         }});
         </script>
     </body></html>
-    """, height=180)
+    """, height=170)
 
 def render_prompt_card(title: str, text: str, box_id: str):
     escaped_text = html.escape(text) if text else ""
@@ -170,7 +192,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
         .title-text {{ font-weight: 700; color: #38bdf8; font-size: 0.9rem; letter-spacing: 0.5px; text-transform: uppercase; }}
         .copy-btn {{ background-color: #28a745; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s; outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
         .copy-btn:hover {{ background-color: #218838; transform: translateY(-1px); }}
-        .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 12px; padding: 1.2rem; height: 260px; overflow-y: auto; font-family: monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); }}
+        .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 12px; padding: 1.2rem; height: 260px; overflow-y: auto; font-family: "Courier New", Courier, monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); }}
         .prompt-box::-webkit-scrollbar {{ width: 6px; }}
         .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; border-radius: 8px; }}
         .prompt-box::-webkit-scrollbar-thumb {{ background: #484c5a; border-radius: 8px; }}
@@ -213,56 +235,66 @@ div[data-testid="stSelectbox"] label { font-size: 0.85rem !important; font-weigh
 
 /* ================== THUẬT TOÁN CSS CHE PHỦ THÔNG MINH ================== */
 
-/* 1. Tùy chỉnh khung Dropzone lúc CHƯA có ảnh */
-[data-testid="stFileUploadDropzone"] {
-    position: relative !important;
+/* 1. Tùy chỉnh khung Dropzone lúc CHƯA có ảnh (Dùng selector an toàn cho mọi phiên bản) */
+[data-testid="stFileUploader"] section {
+    background-color: transparent !important;
     border: 1.5px dashed #484c5a !important;
     border-radius: 12px !important;
     min-height: 120px !important;
-    background-color: transparent !important;
-    transition: 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    position: relative !important;
+    transition: all 0.25s ease !important;
 }
-[data-testid="stFileUploadDropzone"]:hover {
+[data-testid="stFileUploader"] section:hover {
     border-color: #28a745 !important;
     background-color: rgba(40,167,69,0.05) !important;
 }
 
-/* Biến nội dung mặc định của Streamlit (Đám mây, chữ) thành trong suốt để vẫn bấm được */
-[data-testid="stFileUploadDropzone"] > div {
+/* Biến nội dung mặc định của Streamlit (Đám mây, chữ) thành trong suốt để vẫn nhận diện click */
+[data-testid="stFileUploader"] section > div {
     opacity: 0 !important;
-    z-index: 10 !important;
     position: absolute !important;
     width: 100% !important;
     height: 100% !important;
-    top: 0 !important; 
-    left: 0 !important;
+    z-index: 10 !important;
+    cursor: pointer !important;
 }
 
-/* Vẽ giao diện mới nằm phía bên dưới (Giống ảnh thiết kế Timelapse) */
-[data-testid="stFileUploadDropzone"]::before {
+/* Vẽ giao diện mới nằm phía bên dưới (Khớp với UI Timelapse) */
+[data-testid="stFileUploader"] section::before {
     content: "🖼️\\000A Tải lên thiết kế";
     white-space: pre-wrap;
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     text-align: center;
     color: #a0a0a0;
     font-size: 14px;
     font-weight: 500;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     line-height: 2;
+    pointer-events: none; /* Cực kỳ quan trọng: Để click xuyên qua! */
     z-index: 1;
 }
 
-/* 2. ẨN HOÀN TOÀN KHUNG NÀY KHI ĐÃ TẢI ẢNH LÊN */
-[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) {
+/* 2. ẨN HOÀN TOÀN KHUNG NÀY KHI ĐÃ CÓ ẢNH */
+[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) section {
+    display: none !important;
+}
+
+/* 3. ẨN FILE INFO NHƯNG GIỮ LẠI ĐỂ JS CLICK NÚT X ĐƯỢC */
+[data-testid="stUploadedFile"] {
     position: absolute !important;
-    left: -9999px !important;
+    opacity: 0 !important;
     width: 1px !important;
     height: 1px !important;
     overflow: hidden !important;
+    pointer-events: auto !important; 
+    z-index: -100 !important;
     margin: 0 !important;
     padding: 0 !important;
 }
@@ -367,7 +399,7 @@ def process_gemini_analysis_bilingual(
         tag_requirement = "CRITICAL: You MUST explicitly include the exact text tags '@ảnh phác thảo' (for the first input image) and '@ảnh tham chiếu' (for the second input image) naturally within BOTH the English and Vietnamese paragraphs. DO NOT translate these tags."
         if only_light_ref:
             ref_instruction = """
-            REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY FROM REF):
+            REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY):
             Analyze the second provided image (Reference Image). Extract ONLY its lighting scenario, mood, and atmosphere.
             STRICTLY PRESERVE the geometric structure, material textures, and colors from the first image (Sketch Image).
             - English requirement: Explicitly use the tags "@ảnh phác thảo" for geometry/materials and "@ảnh tham chiếu" for lighting. Example: "The structure exactly matches @ảnh phác thảo, while the lighting mood follows @ảnh tham chiếu."

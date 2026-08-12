@@ -11,33 +11,43 @@ import streamlit.components.v1 as components
 # ================= CẤU HÌNH TRANG VÀ HIỆU NĂNG =================
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
+# BIÊN DỊCH SẴN REGEX: Tăng tốc độ lọc từ khóa cấm
 PROHIBITED_PATTERNS = re.compile(
     r"--[a-z0-9]+|\b8k\b|\b16k\b|\bphotorealistic\b|\bhyperrealistic\b|\bcorona render\b|\bvray\b|\boctane render\b|\bunreal engine\b|\bmasterpiece\b",
     re.IGNORECASE
 )
 
 def clean_prompt_text(text: str) -> str:
-    if not text: return ""
+    if not text:
+        return ""
     cleaned = PROHIBITED_PATTERNS.sub("", text)
     lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
     return "\n\n".join(lines).strip()
 
-# ---------------- KHỞI TẠO STATE ----------------
+# ---------------- KHỞI TẠO STATE NHẸ ----------------
 if "prompts" not in st.session_state:
     st.session_state.prompts = {"ext": {"en": "", "vi": ""}, "int": {"en": "", "vi": ""}}
 
+if "uploader_key_ext" not in st.session_state:
+    st.session_state.uploader_key_ext = 0
+if "uploader_key_int" not in st.session_state:
+    st.session_state.uploader_key_int = 0
+
 if "api_models" not in st.session_state:
     st.session_state.api_models = ["gemini-pro-latest", "gemini-flash-latest"]
+# ------------------------------------------------
 
-# ---------------- TỐI ƯU HÌNH ẢNH ----------------
+# TỐI ƯU HÓA HÌNH ẢNH (COMPRESSION)
 @st.cache_data(show_spinner=False, max_entries=10)
 def optimize_image_for_api(file_bytes: bytes) -> Image.Image:
     try:
         img = Image.open(io.BytesIO(file_bytes))
-        if img.mode != "RGB": img = img.convert("RGB")
+        if img.mode != "RGB":
+            img = img.convert("RGB")
         img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
         return img
-    except Exception: return None
+    except Exception as e:
+        return None
 
 @st.cache_data(show_spinner=False, max_entries=20)
 def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
@@ -52,7 +62,8 @@ def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
             img = img.convert("RGB")
             img.save(buffered, format="JPEG", quality=75, optimize=True)
         return base64.b64encode(buffered.getvalue()).decode()
-    except: return ""
+    except:
+        return ""
 
 @st.cache_resource(show_spinner=False)
 def load_cached_dog_image():
@@ -102,10 +113,11 @@ def show_success_dog():
             setTimeout(function() {{ if (modal && modal.parentNode) modal.parentNode.removeChild(modal); }}, 1800);
         }})();
         </script>
-        """, height=0
+        """,
+        height=0,
     )
 
-# NÂNG CẤP GIAO DIỆN XEM TRƯỚC HỖ TRỢ KÉO & THẢ TRỰC TIẾP (DRAG & DROP)
+# ----------------- NÂNG CẤP GIAO DIỆN XEM TRƯỚC (CÓ NÚT XÓA + KÉO THẢ) -----------------
 def render_clickable_image(img_b64, caption, uploader_index):
     dz_id = f"custom_dz_{uploader_index}"
     components.html(f"""
@@ -119,20 +131,44 @@ def render_clickable_image(img_b64, caption, uploader_index):
         .overlay-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 700; font-size: 0.85rem; background: rgba(38,39,48,0.95); padding: 8px 16px; border-radius: 20px; opacity: 0; transition: 0.25s; pointer-events: none; border: 1.5px solid #28a745; text-align: center; white-space: nowrap; }}
         .img-container:hover .overlay-text, .img-container.dragover .overlay-text {{ opacity: 1; }}
         .caption-text {{ text-align: center; color: #a0a0a0; font-size: 0.75rem; margin-top: 5px; font-weight: 600; text-transform: uppercase; }}
+        
+        /* Nút Xóa (X) nằm ở góc phải */
+        .delete-btn {{
+            position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.65); color: white;
+            border-radius: 50%; width: 26px; height: 26px; display: flex; justify-content: center; align-items: center;
+            font-size: 13px; font-weight: bold; z-index: 10; transition: 0.2s; border: 1.5px solid transparent;
+        }}
+        .delete-btn:hover {{ background: #ff4b4b; border-color: #ffffff; transform: scale(1.15); }}
     </style></head>
     <body>
         <div class="img-container" id="{dz_id}">
+            <div class="delete-btn" onclick="deleteImage(event)" title="Xóa ảnh này">✖</div>
             <img src="data:image/jpeg;base64,{img_b64}" />
             <div class="overlay-text">📷 Đổi ảnh (Nhấp / Kéo Thả)</div>
         </div>
         <div class="caption-text">{caption}</div>
         <script>
         const dz = document.getElementById('{dz_id}');
-        // Kích hoạt khi Nhấp chuột
+        
+        // Chức năng Xóa: Đi tìm cái nút X ẩn của Streamlit và click hộ
+        function deleteImage(e) {{
+            e.stopPropagation(); // Ngăn không cho mở cửa sổ chọn file
+            try {{
+                const uploaders = window.parent.document.querySelectorAll('[data-testid="stFileUploader"]');
+                const targetUploader = uploaders[{uploader_index}];
+                if(targetUploader) {{
+                    const delBtn = targetUploader.querySelector('[data-testid="stUploadedFile"] button');
+                    if(delBtn) delBtn.click();
+                }}
+            }} catch(err) {{}}
+        }}
+        
+        // Kích hoạt Upload khi Nhấp
         dz.addEventListener('click', () => {{
             try {{ window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}].click(); }} catch(e) {{}}
         }});
-        // Kích hoạt Kéo thả file đè lên ảnh cũ
+        
+        // Kích hoạt Upload khi Kéo-Thả
         dz.addEventListener('dragover', (e) => {{ e.preventDefault(); dz.classList.add('dragover'); }});
         dz.addEventListener('dragleave', (e) => {{ e.preventDefault(); dz.classList.remove('dragover'); }});
         dz.addEventListener('drop', (e) => {{
@@ -201,51 +237,18 @@ button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !i
 button[kind="primary"]:hover { background-color: #218838 !important; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(40,167,69,0.3); }
 div[data-testid="stSelectbox"] label { font-size: 0.85rem !important; font-weight: 600 !important; color: #a0a0a0 !important;}
 
-/* ================= ẨN THÔNG MINH KHUNG TẢI ẢNH ================= */
-/* Khi file uploader đã được tải file lên, ẩn hoàn toàn khu vực Kéo Thả mặc định */
-[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) [data-testid="stFileUploadDropzone"] {
-    display: none !important;
+/* ================= ẨN HOÀN TOÀN KHUNG TẢI ẢNH KHI ĐÃ CÓ ẢNH ================= */
+
+/* 1. Ẩn cục báo tên file và dung lượng */
+[data-testid="stFileUploader"] section { 
+    display: none !important; 
 }
 
-/* Tùy chỉnh phần báo Tên File để biến thành nút Xóa */
-[data-testid="stUploadedFile"] {
-    background-color: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    margin-top: 0px !important;
+/* 2. Ẩn khung đứt nét kéo thả mặc định khi file uploader đã ngậm file */
+[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) [data-testid="stFileUploadDropzone"] { 
+    display: none !important; 
 }
 
-/* Ẩn Tên file và Icon, chỉ chừa lại nút Close */
-[data-testid="stUploadedFile"] > div > div > div:nth-child(1),
-[data-testid="stUploadedFile"] > div > div > div:nth-child(2) {
-    display: none !important;
-}
-
-/* Biến nút Close (X) thành nút "Xóa ảnh để tải lại" to bự */
-[data-testid="stUploadedFile"] button {
-    background-color: #2b2d35 !important;
-    color: #ff4b4b !important;
-    width: 100% !important;
-    border-radius: 8px !important;
-    padding: 6px !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    transition: all 0.2s ease !important;
-    border: 1px solid #363945 !important;
-}
-[data-testid="stUploadedFile"] button:hover {
-    background-color: #ff4b4b !important;
-    color: #ffffff !important;
-    border-color: #ff4b4b !important;
-}
-[data-testid="stUploadedFile"] button::after {
-    content: "Xóa ảnh để tải lại";
-    margin-left: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    font-family: sans-serif;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -323,7 +326,8 @@ def fetch_models(api_key):
         models = [m.name.replace("models/", "") for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         filtered = sorted(list(set([m for m in models if ("pro" in m or "flash" in m) and not any(x in m for x in ["lite", "preview", "image", "omni", "nano"])])), key=lambda x: ("pro" not in x, x))
         return filtered
-    except: return []
+    except:
+        return []
 
 def process_gemini_analysis_bilingual(
     api_key, model_display, light_opt, context_opt, film_opt, 
@@ -433,7 +437,6 @@ with tab_ext:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
             st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
 
-            # Dùng PlaceHolder để đẩy khung Xem trước lên TRÊN nút Upload mặc định
             sketch_preview_ext_ph = st.empty()
             sketch_file_ext = st.file_uploader("Tải ảnh phác thảo Ngoại thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="s_up_ext")
             sketch_img_ext = None

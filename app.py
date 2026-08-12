@@ -423,7 +423,6 @@ def process_gemini_analysis_bilingual(
         vn_prompt = clean_prompt_text(parts[1]) if len(parts) > 1 else ""
         return [en_prompt, vn_prompt]
     else:
-        # Fallback if no split
         return [clean_prompt_text(result_text), "⚠️ AI không tạo được phiên bản tiếng Việt phân tách rõ ràng."]
 
 
@@ -442,28 +441,32 @@ with tab_ext:
             user_api_key_ext = st.text_input(api_label_ext, type="password", key="api_key_ext_input")
             api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
             
-            selected_model_ext = st.selectbox("Model AI:", st.session_state.api_models, key="model_ext")
-            
-            if st.button("🔄 Tải danh sách Model tốt nhất", key="fetch_models_ext"):
-                if not api_key_ext:
-                    st.error("Vui lòng nhập API Key trước!")
-                else:
-                    try:
-                        genai.configure(api_key=api_key_ext)
-                        fetched_models = []
-                        for m in genai.list_models():
-                            if 'generateContent' in m.supported_generation_methods:
-                                name = m.name.replace("models/", "")
-                                if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
-                                    fetched_models.append(name)
-                        if fetched_models:
-                            fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
-                            st.session_state.api_models = fetched_models
-                            st.rerun()
-                        else:
-                            st.warning("API Key này không có model nào phù hợp.")
-                    except Exception as e:
-                        st.error(f"Lỗi: {e}")
+            # Gộp cột để icon 🔄 ở sát cạnh Selectbox
+            m_col1_e, m_col2_e = st.columns([0.85, 0.15])
+            with m_col1_e:
+                selected_model_ext = st.selectbox("Model AI:", st.session_state.api_models, key="model_ext")
+            with m_col2_e:
+                st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+                if st.button("🔄", key="fetch_models_ext", help="Tải danh sách Model tốt nhất từ Server", use_container_width=True):
+                    if not api_key_ext:
+                        st.error("Vui lòng nhập API Key trước!")
+                    else:
+                        try:
+                            genai.configure(api_key=api_key_ext)
+                            fetched_models = []
+                            for m in genai.list_models():
+                                if 'generateContent' in m.supported_generation_methods:
+                                    name = m.name.replace("models/", "")
+                                    if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
+                                        fetched_models.append(name)
+                            if fetched_models:
+                                fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
+                                st.session_state.api_models = fetched_models
+                                st.rerun()
+                            else:
+                                st.warning("API Key này không có model nào phù hợp.")
+                        except Exception as e:
+                            st.error(f"Lỗi: {e}")
 
             st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
             camera_ext = st.selectbox("Góc Camera:", camera_options, index=0, key="camera_opt_ext")
@@ -528,28 +531,32 @@ with tab_int:
             user_api_key_int = st.text_input(api_label_int, type="password", key="api_key_int_input")
             api_key_int = user_api_key_int.strip() if user_api_key_int.strip() else secret_api_key
             
-            selected_model_int = st.selectbox("Model AI:", st.session_state.api_models, key="model_int")
-            
-            if st.button("🔄 Tải danh sách Model tốt nhất", key="fetch_models_int"):
-                if not api_key_int:
-                    st.error("Vui lòng nhập API Key trước!")
-                else:
-                    try:
-                        genai.configure(api_key=api_key_int)
-                        fetched_models = []
-                        for m in genai.list_models():
-                            if 'generateContent' in m.supported_generation_methods:
-                                name = m.name.replace("models/", "")
-                                if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
-                                    fetched_models.append(name)
-                        if fetched_models:
-                            fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
-                            st.session_state.api_models = fetched_models
-                            st.rerun()
-                        else:
-                            st.warning("API Key này không có model nào phù hợp.")
-                    except Exception as e:
-                        st.error(f"Lỗi: {e}")
+            # Gộp cột để icon 🔄 ở sát cạnh Selectbox
+            m_col1_i, m_col2_i = st.columns([0.85, 0.15])
+            with m_col1_i:
+                selected_model_int = st.selectbox("Model AI:", st.session_state.api_models, key="model_int")
+            with m_col2_i:
+                st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+                if st.button("🔄", key="fetch_models_int", help="Tải danh sách Model tốt nhất từ Server", use_container_width=True):
+                    if not api_key_int:
+                        st.error("Vui lòng nhập API Key trước!")
+                    else:
+                        try:
+                            genai.configure(api_key=api_key_int)
+                            fetched_models = []
+                            for m in genai.list_models():
+                                if 'generateContent' in m.supported_generation_methods:
+                                    name = m.name.replace("models/", "")
+                                    if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
+                                        fetched_models.append(name)
+                            if fetched_models:
+                                fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
+                                st.session_state.api_models = fetched_models
+                                st.rerun()
+                            else:
+                                st.warning("API Key này không có model nào phù hợp.")
+                        except Exception as e:
+                            st.error(f"Lỗi: {e}")
 
             st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
             camera_int = st.selectbox("Góc Camera:", camera_options, index=1, key="camera_opt_int") 

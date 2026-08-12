@@ -37,25 +37,23 @@ if "api_models" not in st.session_state:
     st.session_state.api_models = ["gemini-pro-latest", "gemini-flash-latest"]
 # ------------------------------------------------
 
-# TỐI ƯU HÓA HÌNH ẢNH (COMPRESSION) ĐỂ TĂNG TỐC ĐỘ API & GIAO DIỆN
+# TỐI ƯU HÓA HÌNH ẢNH (COMPRESSION)
 @st.cache_data(show_spinner=False, max_entries=10)
 def optimize_image_for_api(file_bytes: bytes) -> Image.Image:
-    """Nén và giảm kích thước ảnh trước khi gửi cho AI để tiết kiệm băng thông (tăng tốc x3)"""
     try:
         img = Image.open(io.BytesIO(file_bytes))
         if img.mode != "RGB":
             img = img.convert("RGB")
-        img.thumbnail((1024, 1024), Image.Resampling.LANCZOS) # Thu nhỏ xuống max 1024px
+        img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
         return img
     except Exception as e:
         return None
 
 @st.cache_data(show_spinner=False, max_entries=20)
 def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
-    """Nén ảnh cực nhỏ dạng Base64 chỉ để hiển thị Web (chống giật lag RAM trình duyệt)"""
     try:
         img = Image.open(io.BytesIO(file_bytes))
-        img.thumbnail((400, 400), Image.Resampling.LANCZOS) # UI chỉ cần ảnh nhỏ
+        img.thumbnail((400, 400), Image.Resampling.LANCZOS)
         buffered = io.BytesIO()
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGBA")
@@ -67,7 +65,6 @@ def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
     except:
         return ""
 
-# Tải ảnh chó 1 lần duy nhất lúc khởi động app vào bộ nhớ máy chủ
 @st.cache_resource(show_spinner=False)
 def load_cached_dog_image():
     explicit_files = ["image_45819f.png", "image_45819f.jpg", "dog.png", "chihuahua.png"]
@@ -120,7 +117,6 @@ def show_success_dog():
         height=0,
     )
 
-
 def render_clickable_image(img_b64, caption, uploader_index):
     components.html(f"""
     <!DOCTYPE html>
@@ -142,7 +138,6 @@ def render_clickable_image(img_b64, caption, uploader_index):
     </body></html>
     """, height=160)
 
-
 def render_prompt_card(title: str, text: str, box_id: str):
     escaped_text = html.escape(text) if text else ""
     components.html(f"""
@@ -151,8 +146,8 @@ def render_prompt_card(title: str, text: str, box_id: str):
         body {{ margin: 0; background-color: transparent; font-family: sans-serif; color: #e0e0e0; overflow: hidden; }}
         .header-row {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
         .title-text {{ font-weight: 700; color: #38bdf8; font-size: 0.9rem; letter-spacing: 0.5px; text-transform: uppercase; }}
-        .copy-btn {{ background-color: #28a745; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s; outline: none; }}
-        .copy-btn:hover {{ background-color: #218838; }}
+        .copy-btn {{ background-color: #28a745; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s; outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
+        .copy-btn:hover {{ background-color: #218838; transform: translateY(-1px); }}
         .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 1.2rem; height: 260px; overflow-y: auto; font-family: monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; }}
         .prompt-box::-webkit-scrollbar {{ width: 6px; }}
         .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; border-radius: 8px; }}
@@ -258,15 +253,27 @@ film_int_options = [
 ]
 
 
-# TỐI ƯU HÓA: CACHE MODEL INSTANCE
 @st.cache_resource(show_spinner=False)
 def get_cached_model(api_key: str, model_name: str):
-    """Giữ Model trong bộ nhớ máy chủ để giảm độ trễ khởi tạo Connection"""
     genai.configure(api_key=api_key)
     return genai.GenerativeModel(f"models/{model_name}")
 
-# HÀM GỌI API GEMINI (ĐÃ TÍCH HỢP TỰ NHẬN DIỆN GÓC CAMERA)
-def process_gemini_analysis_bilingual(api_key, model_display, light_opt, context_opt, film_opt, sketch_img, ref_img, extra_notes, is_interior=False):
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_models(api_key):
+    if not api_key: return []
+    try:
+        genai.configure(api_key=api_key)
+        models = [m.name.replace("models/", "") for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        filtered = sorted(list(set([m for m in models if ("pro" in m or "flash" in m) and not any(x in m for x in ["lite", "preview", "image", "omni", "nano"])])), key=lambda x: ("pro" not in x, x))
+        return filtered
+    except:
+        return []
+
+# HÀM GỌI API GEMINI (TÍCH HỢP TOKENS VÀ CHẾ ĐỘ CHỈ LẤY SÁNG MỚI)
+def process_gemini_analysis_bilingual(
+    api_key, model_display, light_opt, context_opt, film_opt, 
+    sketch_img, ref_img, extra_notes, only_light_sketch=False, only_light_ref=False, is_interior=False
+):
     model = get_cached_model(api_key, model_display)
 
     safety_settings = [
@@ -284,14 +291,47 @@ def process_gemini_analysis_bilingual(api_key, model_display, light_opt, context
 
     film_instruction = "Apply natural true-to-life colors without any film filter." if ("B0" in film_opt or "F0" in film_opt) else f"Apply {clean_film} photography style and color grading."
 
+    # XỬ LÝ LOGIC TAG @ẢNH THAM CHIẾU VÀ @ẢNH PHÁC THẢO CHO GOOGLE LABS
+    ref_instruction = ""
+    tag_requirement = ""
+
+    if ref_img:
+        tag_requirement = "CRITICAL: You MUST explicitly include the exact text tags '@ảnh thực tế' (for the first input image) and '@ảnh tham chiếu' (for the second input image) naturally within BOTH the English and Vietnamese paragraphs."
+        if only_light_ref:
+            ref_instruction = """
+            REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY FROM REF):
+            Analyze the second provided image (Reference Image). Extract ONLY its lighting scenario, mood, and atmosphere.
+            STRICTLY PRESERVE the geometric structure, material textures, and colors from the first image (Base Image).
+            - English requirement: Explicitly use the tags "@ảnh thực tế" for geometry/materials and "@ảnh tham chiếu" for lighting within the English text. Example: "The structure and materials exactly match @ảnh thực tế, while the lighting mood strictly follows @ảnh tham chiếu."
+            """
+        else:
+            ref_instruction = """
+            REFERENCE IMAGE INSTRUCTION (FULL BLEND):
+            Analyze the second provided image (Reference Image). Extract its surrounding environmental context, lighting scenario, and primary material/color palette.
+            Apply these extracted styles seamlessly onto the structural geometry of the first image (Base Image).
+            - English requirement: Explicitly use BOTH tags "@ảnh thực tế" and "@ảnh tham chiếu" naturally within the English text. Example: "The geometric structure follows @ảnh thực tế, heavily inspired by the style, materials, and lighting of @ảnh tham chiếu."
+            """
+    else:
+        tag_requirement = "CRITICAL: You MUST explicitly include the exact text tag '@ảnh thực tế' naturally within BOTH the English and Vietnamese paragraphs to reference the input image. Example: 'A modern architecture based on @ảnh thực tế...'"
+
+    sketch_light_instruction = ""
+    if only_light_sketch:
+        sketch_light_instruction = """
+        BASE IMAGE LIGHTING PRESERVATION:
+        Analyze the lighting, shadows, and mood directly baked into the first image (Base Image). 
+        Instruct the prompt to strictly preserve and enhance the exact lighting conditions seen in @ảnh thực tế. DO NOT invent new lighting scenarios that contradict the base image.
+        """
+
     system_instruction = f"""
     You are an expert architectural prompt engineer specializing in GOOGLE LABS FLOW (ImageFX / Imagen model).
-    Analyze the sketch image of {domain} and write a highly detailed, natural English description, then translate it into Vietnamese.
+    Analyze the {domain} images and write a highly detailed, natural English description, then translate it into Vietnamese.
 
     CRITICAL INSTRUCTIONS FOR AI:
-    1. AUTOMATIC CAMERA ANGLE: Carefully analyze the provided sketch image to determine the exact camera angle and perspective (e.g., strictly frontal flat elevation, 3/4 architectural perspective, bird's-eye view, eye-level wide angle). Incorporate this perspective into the description.
-    2. OVERRIDE RULE: If the user provided extra notes, prioritize the user's note over the sketch line darkness/shadows. 
-    3. FORMAT RULES: Write strictly in clear English natural sentences. DO NOT use Midjourney tags (--ar, --v), resolution buzzwords (8k, 16k, photorealistic), or render engine names.
+    1. AUTOMATIC CAMERA ANGLE: Determine the exact camera angle and perspective from the first image. Incorporate this perspective into the description.
+    2. OVERRIDE RULE: If user provided extra notes, prioritize the user's note over the image details.
+    {ref_instruction}
+    {sketch_light_instruction}
+    3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags (--ar, --v), resolution buzzwords, or render engine names. DO NOT bold or format the tags (@ảnh thực tế, @ảnh tham chiếu).
 
     OUTPUT STRUCTURE REQUIREMENT:
     Return EXACTLY 2 sections separated by `===LANG_SPLIT===`:
@@ -301,12 +341,14 @@ def process_gemini_analysis_bilingual(api_key, model_display, light_opt, context
     
     The English paragraph MUST flow naturally combining:
     - Subject/Style
-    - Materials/Colors
+    - Materials/Colors (Adhering to the Reference Image Instructions)
     - The AUTO-DETECTED Camera Angle
-    - Lighting: "{clean_light}"
+    - Lighting: "{clean_light}" (Blended with specific rules above if any)
     - Environment: "{clean_context}"
-    - Camera details: "Shot on Hasselblad H6D-100c, crisp surface textures. {film_instruction}"
+    - Camera details: "Shot on Hasselblad H6D-100c. {film_instruction}"
     
+    {tag_requirement}
+    Make sure the Vietnamese paragraph is a precise and natural translation of the English prompt and explicitly keeps the required tags ("@ảnh thực tế", "@ảnh tham chiếu") un-translated.
     Do not include the < > brackets or any other labels. Just output the plain text paragraphs.
     """
 
@@ -323,17 +365,6 @@ def process_gemini_analysis_bilingual(api_key, model_display, light_opt, context
         return clean_prompt_text(res), "⚠️ AI không phân tách được tiếng Việt."
     except Exception as e:
         return f"Lỗi gọi API: {str(e)}", ""
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def fetch_models(api_key):
-    if not api_key: return []
-    try:
-        genai.configure(api_key=api_key)
-        models = [m.name.replace("models/", "") for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        filtered = sorted(list(set([m for m in models if ("pro" in m or "flash" in m) and not any(x in m for x in ["lite", "preview", "image", "omni", "nano"])])), key=lambda x: ("pro" not in x, x))
-        return filtered
-    except:
-        return []
 
 # ==================== GIAO DIỆN CHÍNH ====================
 tab_ext, tab_int = st.tabs(["🏛️ NGOẠI THẤT", "🛋️ NỘI THẤT"])
@@ -367,31 +398,50 @@ with tab_ext:
 
     with col_main_e:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tối Ưu cho ImageFX</p>', unsafe_allow_html=True)
-        # Sử dụng Placeholder Container để đổ chữ mà KHÔNG CẦN RERUN TAB
         main_placeholder_ext = st.empty() 
 
     with col_right_e:
-        with st.expander("🖼️ Tải ảnh phác thảo & Chỉ định màu", expanded=True):
+        with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
+            r_head1_e, r_head2_e = st.columns([0.65, 0.35], vertical_alignment="bottom")
+            with r_head1_e:
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh thực tế / Phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
+            with r_head2_e:
+                only_light_sketch_ext = st.checkbox("Chỉ lấy sáng", value=False, key="light_sketch_ext", help="Bảo tồn tuyệt đối ánh sáng gốc của bản vẽ")
+
             sketch_file_ext = st.file_uploader("Tải ảnh phác thảo Ngoại thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="s_up_ext")
             sketch_img_ext = None
             if sketch_file_ext:
                 sketch_img_ext = optimize_image_for_api(sketch_file_ext.getvalue())
-                render_clickable_image(optimize_image_for_ui_b64(sketch_file_ext.getvalue()), "Ảnh phác thảo Ngoại thất", 0)
+                render_clickable_image(optimize_image_for_ui_b64(sketch_file_ext.getvalue()), "Ảnh thực tế / Phác thảo Ngoại thất", 0)
 
+            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+            
+            r_col1_e, r_col2_e = st.columns([0.65, 0.35], vertical_alignment="bottom")
+            with r_col1_e:
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
+            with r_col2_e:
+                only_light_ref_ext = st.checkbox("Chỉ lấy sáng", value=False, key="light_ref_ext", help="Chỉ mượn ánh sáng và nhiệt độ màu của ảnh này")
+                
             ref_file_ext = st.file_uploader("Tải ảnh tham chiếu (Tùy chọn)", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="r_up_ext")
             ref_img_ext = optimize_image_for_api(ref_file_ext.getvalue()) if ref_file_ext else None
+            if ref_file_ext:
+                render_clickable_image(optimize_image_for_ui_b64(ref_file_ext.getvalue()), "Ảnh tham chiếu Ngoại thất", 1)
 
+            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
             extra_notes_ext = st.text_area("Ghi chú màu sắc / vật liệu ghi đè:", placeholder="Ví dụ: Tường sơn trắng, gỗ sồi sáng màu, mái bằng...", height=80, key="n_ext")
 
             analyze_btn_ext = st.button("🚀 Phân tích & Tạo Prompt", type="primary", use_container_width=True, key="btn_anl_ext")
 
-    # Xử lý Logic Ngoại Thất
     if analyze_btn_ext:
         if not api_key_ext: st.error("Vui lòng nhập API Key!")
         elif not sketch_img_ext: st.warning("Vui lòng tải lên ảnh phác thảo Ngoại thất!")
         else:
             with st.spinner("AI đang phân tích góc máy và vật liệu..."):
-                en_res, vi_res = process_gemini_analysis_bilingual(api_key_ext, selected_model_ext, light_ext, context_ext, film_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False)
+                en_res, vi_res = process_gemini_analysis_bilingual(
+                    api_key_ext, selected_model_ext, light_ext, context_ext, film_ext, 
+                    sketch_img_ext, ref_img_ext, extra_notes_ext, 
+                    only_light_sketch_ext, only_light_ref_ext, is_interior=False
+                )
                 st.session_state.prompts["ext"]["en"] = en_res
                 st.session_state.prompts["ext"]["vi"] = vi_res
                 show_success_dog()
@@ -429,32 +479,51 @@ with tab_int:
 
     with col_main_i:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tối Ưu cho ImageFX</p>', unsafe_allow_html=True)
-        # Sử dụng Placeholder Container để đổ chữ mà KHÔNG CẦN RERUN TAB
         main_placeholder_int = st.empty()
 
     with col_right_i:
-        with st.expander("🖼️ Tải ảnh phác thảo & Chỉ định màu", expanded=True):
+        with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
+            r_head1_i, r_head2_i = st.columns([0.65, 0.35], vertical_alignment="bottom")
+            with r_head1_i:
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh thực tế / Phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
+            with r_head2_i:
+                only_light_sketch_int = st.checkbox("Chỉ lấy sáng", value=False, key="light_sketch_int", help="Bảo tồn tuyệt đối ánh sáng gốc của bản vẽ")
+
             sketch_file_int = st.file_uploader("Tải ảnh phác thảo Nội thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="s_up_int")
             sketch_img_int = None
             if sketch_file_int:
                 sketch_img_int = optimize_image_for_api(sketch_file_int.getvalue())
-                render_clickable_image(optimize_image_for_ui_b64(sketch_file_int.getvalue()), "Ảnh phác thảo Nội thất", 2)
+                render_clickable_image(optimize_image_for_ui_b64(sketch_file_int.getvalue()), "Ảnh thực tế / Phác thảo Nội thất", 2)
+
+            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+            
+            r_col1_i, r_col2_i = st.columns([0.65, 0.35], vertical_alignment="bottom")
+            with r_col1_i:
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
+            with r_col2_i:
+                only_light_ref_int = st.checkbox("Chỉ lấy sáng", value=False, key="light_ref_int", help="Chỉ mượn ánh sáng và nhiệt độ màu của ảnh này")
 
             ref_file_int = st.file_uploader("Tải ảnh tham chiếu Nội thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="r_up_int")
             ref_img_int = optimize_image_for_api(ref_file_int.getvalue()) if ref_file_int else None
+            if ref_file_int:
+                render_clickable_image(optimize_image_for_ui_b64(ref_file_int.getvalue()), "Ảnh tham chiếu Nội thất", 3)
 
+            st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
             extra_notes_int = st.text_area("Ghi chú màu sắc / vật liệu ghi đè:", placeholder="Ví dụ: Trần sơn trắng phẳng, sàn gỗ sồi...", height=80, key="n_int")
 
             analyze_btn_int = st.button("🚀 Phân tích & Tạo Prompt", type="primary", use_container_width=True, key="btn_anl_int")
 
-    # Xử lý Logic Nội Thất
     if analyze_btn_int:
         if not api_key_int: st.error("Vui lòng nhập API Key!")
         elif not sketch_img_int: st.warning("Vui lòng tải lên ảnh phác thảo Nội thất!")
         else:
-            with st.spinner("AI đang phân tích góc máy và vật liệu (Vui lòng chờ)..."):
+            with st.spinner("AI đang phân tích góc máy, vật liệu và ánh sáng (Vui lòng chờ)..."):
                 try:
-                    en_res, vi_res = process_gemini_analysis_bilingual(api_key_int, selected_model_int, light_int, context_int, film_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True)
+                    en_res, vi_res = process_gemini_analysis_bilingual(
+                        api_key_int, selected_model_int, light_int, context_int, film_int, 
+                        sketch_img_int, ref_img_int, extra_notes_int, 
+                        only_light_sketch_int, only_light_ref_int, is_interior=True
+                    )
                     st.session_state.prompts["int"]["en"] = en_res
                     st.session_state.prompts["int"]["vi"] = vi_res
                     show_success_dog()

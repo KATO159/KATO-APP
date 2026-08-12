@@ -11,10 +11,36 @@ import streamlit.components.v1 as components
 # Cấu hình trang Streamlit
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
-# KHẮC PHỤC LỖI UI: Đồng nhất chính xác tên biến Session State với Key của Text Area
+# ---------------- BỘ XỬ LÝ TRẠNG THÁI (CHỐNG LỖI STREAMLIT) ----------------
+# 1. Khởi tạo khóa dữ liệu nếu chưa có
 for key in ["box1_ext", "box2_ext", "box3_ext", "box4_ext", "box1_int", "box2_int", "box3_int", "box4_int"]:
     if key not in st.session_state:
         st.session_state[key] = ""
+
+# 2. Xử lý Hàng chờ kết quả AI (Chuyển dữ liệu vào Box NGAY TỪ ĐẦU SCRIPT)
+if "pending_ext_boxes" in st.session_state:
+    st.session_state.box1_ext = st.session_state.pending_ext_boxes[0]
+    st.session_state.box2_ext = st.session_state.pending_ext_boxes[1]
+    st.session_state.box3_ext = st.session_state.pending_ext_boxes[2]
+    st.session_state.box4_ext = st.session_state.pending_ext_boxes[3]
+    del st.session_state.pending_ext_boxes
+
+if "pending_int_boxes" in st.session_state:
+    st.session_state.box1_int = st.session_state.pending_int_boxes[0]
+    st.session_state.box2_int = st.session_state.pending_int_boxes[1]
+    st.session_state.box3_int = st.session_state.pending_int_boxes[2]
+    st.session_state.box4_int = st.session_state.pending_int_boxes[3]
+    del st.session_state.pending_int_boxes
+
+# 3. Xử lý Hàng chờ khi bấm Nút Tag Vật liệu
+if "pending_ext_tag" in st.session_state:
+    st.session_state.box2_ext += st.session_state.pending_ext_tag
+    del st.session_state.pending_ext_tag
+
+if "pending_int_tag" in st.session_state:
+    st.session_state.box2_int += st.session_state.pending_int_tag
+    del st.session_state.pending_int_tag
+# ---------------------------------------------------------------------------
 
 if "uploader_key_ext" not in st.session_state:
     st.session_state.uploader_key_ext = 0
@@ -244,7 +270,7 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI 
+# HÀM XỬ LÝ GỌI API GEMINI
 def process_gemini_analysis_split(
     api_key,
     selected_model_display,
@@ -361,23 +387,22 @@ with tab_ext:
     with col_main_e:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
         
-        # BỎ THUỘC TÍNH VALUE Ở ĐÂY ĐỂ TRÁNH LỖI XUNG ĐỘT STATE CỦA STREAMLIT
         b1_ext = st.text_area("1. Phong cách & Không gian (Box 1):", key="box1_ext", height=65)
         b2_ext = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", key="box2_ext", height=85)
         
         st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
         tag_cols_e = st.columns(4)
         if tag_cols_e[0].button("+ Gỗ ốp mặt tiền", key="tag_e1"):
-            st.session_state.box2_ext += ", slatted timber facade cladding"
+            st.session_state.pending_ext_tag = ", slatted timber facade cladding"
             st.rerun()
         if tag_cols_e[1].button("+ Bê tông mài", key="tag_e2"):
-            st.session_state.box2_ext += ", polished concrete panels"
+            st.session_state.pending_ext_tag = ", polished concrete panels"
             st.rerun()
         if tag_cols_e[2].button("+ Cửa kính khung đen", key="tag_e3"):
-            st.session_state.box2_ext += ", black metal frame glass doors"
+            st.session_state.pending_ext_tag = ", black metal frame glass doors"
             st.rerun()
         if tag_cols_e[3].button("+ Đá ốp tự nhiên", key="tag_e4"):
-            st.session_state.box2_ext += ", natural stone veneer wall"
+            st.session_state.pending_ext_tag = ", natural stone veneer wall"
             st.rerun()
 
         b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", key="box3_ext", height=65)
@@ -419,11 +444,8 @@ with tab_ext:
                 boxes = process_gemini_analysis_split(
                     api_key_ext, selected_model_ext, light_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False
                 )
-                # Ghi thẳng vào khóa UI của Text Area
-                st.session_state.box1_ext = boxes[0]
-                st.session_state.box2_ext = boxes[1]
-                st.session_state.box3_ext = boxes[2]
-                st.session_state.box4_ext = boxes[3]
+                # CHUYỂN DỮ LIỆU VÀO HÀNG CHỜ VÀ RELOAD
+                st.session_state.pending_ext_boxes = boxes
                 st.session_state.show_dog_modal = True
                 st.rerun()
             except Exception as e:
@@ -468,23 +490,22 @@ with tab_int:
     with col_main_i:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
         
-        # BỎ THUỘC TÍNH VALUE Ở ĐÂY ĐỂ TRÁNH LỖI XUNG ĐỘT STATE CỦA STREAMLIT
         b1_int = st.text_area("1. Phong cách & Không gian (Box 1):", key="box1_int", height=65)
         b2_int = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", key="box2_int", height=85)
         
         st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
         tag_cols_i = st.columns(4)
         if tag_cols_i[0].button("+ Trần sơn trắng", key="tag_i1"):
-            st.session_state.box2_int += ", flat smooth white painted ceiling"
+            st.session_state.pending_int_tag = ", flat smooth white painted ceiling"
             st.rerun()
         if tag_cols_i[1].button("+ Sàn gỗ Sồi", key="tag_i2"):
-            st.session_state.box2_int += ", light oak timber floor"
+            st.session_state.pending_int_tag = ", light oak timber floor"
             st.rerun()
         if tag_cols_i[2].button("+ Sofa da Cognac", key="tag_i3"):
-            st.session_state.box2_int += ", plush cognac leather sofa"
+            st.session_state.pending_int_tag = ", plush cognac leather sofa"
             st.rerun()
         if tag_cols_i[3].button("+ Lam gỗ Óc chó", key="tag_i4"):
-            st.session_state.box2_int += ", slatted walnut wood wall panels"
+            st.session_state.pending_int_tag = ", slatted walnut wood wall panels"
             st.rerun()
 
         b3_int = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", key="box3_int", height=65)
@@ -526,11 +547,8 @@ with tab_int:
                 boxes = process_gemini_analysis_split(
                     api_key_int, selected_model_int, light_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True
                 )
-                # Ghi thẳng vào khóa UI của Text Area
-                st.session_state.box1_int = boxes[0]
-                st.session_state.box2_int = boxes[1]
-                st.session_state.box3_int = boxes[2]
-                st.session_state.box4_int = boxes[3]
+                # CHUYỂN DỮ LIỆU VÀO HÀNG CHỜ VÀ RELOAD
+                st.session_state.pending_int_boxes = boxes
                 st.session_state.show_dog_modal = True
                 st.rerun()
             except Exception as e:

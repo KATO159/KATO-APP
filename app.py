@@ -257,7 +257,7 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI (SỬA LỖI MODEL NAME VÀ TÁCH 4 BỐC PROMPT TIẾNG ANH)
+# HÀM XỬ LÝ GỌI API GEMINI (SỬA TÊN MODEL MỚI NHẤT & TÁCH 4 BỐC PROMPT TIẾNG ANH)
 def process_gemini_analysis_split(
     api_key,
     selected_model,
@@ -269,10 +269,9 @@ def process_gemini_analysis_split(
 ):
     genai.configure(api_key=api_key)
     
-    # Chuẩn hóa tên model để tránh lỗi 404
-    model_name = selected_model
-    if not model_name.startswith("models/"):
-        model_name = f"models/{model_name}"
+    # Xử lý chuỗi tên model chuẩn cho API
+    clean_model = selected_model.replace("models/", "")
+    model_name = f"models/{clean_model}"
 
     model = genai.GenerativeModel(model_name)
 
@@ -330,8 +329,8 @@ with tab_ext:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Ngoại thất)", expanded=True):
             user_api_key_ext = st.text_input("Gemini API Key:", type="password", key="api_key_ext_input")
             api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
-            # Cập nhật danh sách model chuẩn tránh lỗi 404
-            selected_model_ext = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_ext")
+            # Danh sách mô hình Gemini mới nhất
+            selected_model_ext = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro", "gemini-3.5-flash"], key="model_ext")
             light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=0, key="light_ext")
 
     with col_main_e:
@@ -410,7 +409,8 @@ with tab_int:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Nội thất)", expanded=True):
             user_api_key_int = st.text_input("Gemini API Key:", type="password", key="api_key_int_input")
             api_key_int = user_api_key_int.strip() if user_api_key_int.strip() else secret_api_key
-            selected_model_int = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_int")
+            # Danh sách mô hình Gemini mới nhất
+            selected_model_int = st.selectbox("Model AI:", ["gemini-3.6-flash", "gemini-3.1-pro", "gemini-3.5-flash"], key="model_int")
             light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=0, key="light_int")
 
     with col_main_i:

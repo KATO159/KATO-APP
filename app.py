@@ -100,7 +100,7 @@ def get_transparent_dog_b64():
     return None
 
 
-# Hiển thị khung Prompt chuẩn 50-50 khóa bằng đúng đáy Panel trái
+# Hiển thị khung Prompt chuẩn 50-50 khóa bằng đúng 2 đường màu đỏ
 def render_prompt_card(title: str, text: str, box_id: str):
   escaped_text = html.escape(text) if text else ""
   html_code = f"""
@@ -115,7 +115,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
             .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.88rem; }}
             .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 2px 8px; border-radius: 6px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.65rem 0.75rem; height: 270px; min-height: 270px; max-height: 270px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.85rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.65rem 0.75rem; height: 285px; min-height: 285px; max-height: 285px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.85rem; line-height: 1.45; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -149,7 +149,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-  components.html(html_code, height=310)
+  components.html(html_code, height=335)
 
 
 # Hiển thị ảnh xem trước
@@ -258,10 +258,10 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao 310px */
+/* Đảm bảo iframe Prompt luôn đầy đủ chiều cao 335px */
 iframe[data-testid="stCustomComponentV1"], iframe {
     width: 100% !important;
-    min-height: 310px !important;
+    min-height: 335px !important;
     display: block !important;
 }
 

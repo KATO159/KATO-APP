@@ -269,7 +269,7 @@ def fetch_models(api_key):
     except:
         return []
 
-# HÀM GỌI API GEMINI (TÍCH HỢP TOKENS VÀ CHẾ ĐỘ CHỈ LẤY SÁNG MỚI)
+# HÀM GỌI API GEMINI (TÍCH HỢP TOKENS CHUẨN: @ảnh phác thảo & @ảnh tham chiếu)
 def process_gemini_analysis_bilingual(
     api_key, model_display, light_opt, context_opt, film_opt, 
     sketch_img, ref_img, extra_notes, only_light_sketch=False, only_light_ref=False, is_interior=False
@@ -291,35 +291,35 @@ def process_gemini_analysis_bilingual(
 
     film_instruction = "Apply natural true-to-life colors without any film filter." if ("B0" in film_opt or "F0" in film_opt) else f"Apply {clean_film} photography style and color grading."
 
-    # XỬ LÝ LOGIC TAG @ẢNH THAM CHIẾU VÀ @ẢNH PHÁC THẢO CHO GOOGLE LABS
+    # XỬ LÝ LOGIC TAG @ảnh phác thảo VÀ @ảnh tham chiếu CHO GOOGLE LABS
     ref_instruction = ""
     tag_requirement = ""
 
     if ref_img:
-        tag_requirement = "CRITICAL: You MUST explicitly include the exact text tags '@ảnh thực tế' (for the first input image) and '@ảnh tham chiếu' (for the second input image) naturally within BOTH the English and Vietnamese paragraphs."
+        tag_requirement = "CRITICAL: You MUST explicitly include the exact text tags '@ảnh phác thảo' (for the first input image) and '@ảnh tham chiếu' (for the second input image) naturally within BOTH the English and Vietnamese paragraphs. DO NOT translate these tags."
         if only_light_ref:
             ref_instruction = """
             REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY FROM REF):
             Analyze the second provided image (Reference Image). Extract ONLY its lighting scenario, mood, and atmosphere.
-            STRICTLY PRESERVE the geometric structure, material textures, and colors from the first image (Base Image).
-            - English requirement: Explicitly use the tags "@ảnh thực tế" for geometry/materials and "@ảnh tham chiếu" for lighting within the English text. Example: "The structure and materials exactly match @ảnh thực tế, while the lighting mood strictly follows @ảnh tham chiếu."
+            STRICTLY PRESERVE the geometric structure, material textures, and colors from the first image (Sketch Image).
+            - English requirement: Explicitly use the tags "@ảnh phác thảo" for geometry/materials and "@ảnh tham chiếu" for lighting within the English text. Example: "The structure and materials exactly match @ảnh phác thảo, while the lighting mood strictly follows @ảnh tham chiếu."
             """
         else:
             ref_instruction = """
             REFERENCE IMAGE INSTRUCTION (FULL BLEND):
             Analyze the second provided image (Reference Image). Extract its surrounding environmental context, lighting scenario, and primary material/color palette.
-            Apply these extracted styles seamlessly onto the structural geometry of the first image (Base Image).
-            - English requirement: Explicitly use BOTH tags "@ảnh thực tế" and "@ảnh tham chiếu" naturally within the English text. Example: "The geometric structure follows @ảnh thực tế, heavily inspired by the style, materials, and lighting of @ảnh tham chiếu."
+            Apply these extracted styles seamlessly onto the structural geometry of the first image (Sketch Image).
+            - English requirement: Explicitly use BOTH tags "@ảnh phác thảo" and "@ảnh tham chiếu" naturally within the English text. Example: "The geometric structure follows @ảnh phác thảo, heavily inspired by the style, materials, and lighting of @ảnh tham chiếu."
             """
     else:
-        tag_requirement = "CRITICAL: You MUST explicitly include the exact text tag '@ảnh thực tế' naturally within BOTH the English and Vietnamese paragraphs to reference the input image. Example: 'A modern architecture based on @ảnh thực tế...'"
+        tag_requirement = "CRITICAL: You MUST explicitly include the exact text tag '@ảnh phác thảo' naturally within BOTH the English and Vietnamese paragraphs to reference the input image. Example: 'A modern architecture based on @ảnh phác thảo...'. DO NOT translate this tag."
 
     sketch_light_instruction = ""
     if only_light_sketch:
         sketch_light_instruction = """
-        BASE IMAGE LIGHTING PRESERVATION:
-        Analyze the lighting, shadows, and mood directly baked into the first image (Base Image). 
-        Instruct the prompt to strictly preserve and enhance the exact lighting conditions seen in @ảnh thực tế. DO NOT invent new lighting scenarios that contradict the base image.
+        SKETCH IMAGE LIGHTING PRESERVATION:
+        Analyze the lighting, shadows, and mood directly baked into the first image (Sketch Image). 
+        Instruct the prompt to strictly preserve and enhance the exact lighting conditions seen in @ảnh phác thảo. DO NOT invent new lighting scenarios that contradict the sketch image.
         """
 
     system_instruction = f"""
@@ -327,11 +327,11 @@ def process_gemini_analysis_bilingual(
     Analyze the {domain} images and write a highly detailed, natural English description, then translate it into Vietnamese.
 
     CRITICAL INSTRUCTIONS FOR AI:
-    1. AUTOMATIC CAMERA ANGLE: Determine the exact camera angle and perspective from the first image. Incorporate this perspective into the description.
+    1. AUTOMATIC CAMERA ANGLE: Carefully analyze the first image (Sketch) to determine the exact camera angle and perspective (e.g., strictly frontal flat elevation, 3/4 architectural perspective, bird's-eye view, eye-level wide angle). Incorporate this perspective into the description.
     2. OVERRIDE RULE: If user provided extra notes, prioritize the user's note over the image details.
     {ref_instruction}
     {sketch_light_instruction}
-    3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags (--ar, --v), resolution buzzwords, or render engine names. DO NOT bold or format the tags (@ảnh thực tế, @ảnh tham chiếu).
+    3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags (--ar, --v), resolution buzzwords, or render engine names. DO NOT bold or format the tags (@ảnh phác thảo, @ảnh tham chiếu).
 
     OUTPUT STRUCTURE REQUIREMENT:
     Return EXACTLY 2 sections separated by `===LANG_SPLIT===`:
@@ -348,7 +348,7 @@ def process_gemini_analysis_bilingual(
     - Camera details: "Shot on Hasselblad H6D-100c. {film_instruction}"
     
     {tag_requirement}
-    Make sure the Vietnamese paragraph is a precise and natural translation of the English prompt and explicitly keeps the required tags ("@ảnh thực tế", "@ảnh tham chiếu") un-translated.
+    Make sure the Vietnamese paragraph is a precise and natural translation of the English prompt and explicitly keeps the required tags ("@ảnh phác thảo", "@ảnh tham chiếu") un-translated.
     Do not include the < > brackets or any other labels. Just output the plain text paragraphs.
     """
 
@@ -404,7 +404,7 @@ with tab_ext:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
             r_head1_e, r_head2_e = st.columns([0.65, 0.35], vertical_alignment="bottom")
             with r_head1_e:
-                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh thực tế / Phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
             with r_head2_e:
                 only_light_sketch_ext = st.checkbox("Chỉ lấy sáng", value=False, key="light_sketch_ext", help="Bảo tồn tuyệt đối ánh sáng gốc của bản vẽ")
 
@@ -412,10 +412,11 @@ with tab_ext:
             sketch_img_ext = None
             if sketch_file_ext:
                 sketch_img_ext = optimize_image_for_api(sketch_file_ext.getvalue())
-                render_clickable_image(optimize_image_for_ui_b64(sketch_file_ext.getvalue()), "Ảnh thực tế / Phác thảo Ngoại thất", 0)
+                render_clickable_image(optimize_image_for_ui_b64(sketch_file_ext.getvalue()), "Ảnh phác thảo Ngoại thất", 0)
 
             st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
             
+            # Giao diện Tải ảnh tham chiếu kèm Checkbox Chỉ lấy sáng
             r_col1_e, r_col2_e = st.columns([0.65, 0.35], vertical_alignment="bottom")
             with r_col1_e:
                 st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
@@ -485,7 +486,7 @@ with tab_int:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
             r_head1_i, r_head2_i = st.columns([0.65, 0.35], vertical_alignment="bottom")
             with r_head1_i:
-                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh thực tế / Phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
             with r_head2_i:
                 only_light_sketch_int = st.checkbox("Chỉ lấy sáng", value=False, key="light_sketch_int", help="Bảo tồn tuyệt đối ánh sáng gốc của bản vẽ")
 
@@ -493,7 +494,7 @@ with tab_int:
             sketch_img_int = None
             if sketch_file_int:
                 sketch_img_int = optimize_image_for_api(sketch_file_int.getvalue())
-                render_clickable_image(optimize_image_for_ui_b64(sketch_file_int.getvalue()), "Ảnh thực tế / Phác thảo Nội thất", 2)
+                render_clickable_image(optimize_image_for_ui_b64(sketch_file_int.getvalue()), "Ảnh phác thảo Nội thất", 2)
 
             st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
             

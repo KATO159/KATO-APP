@@ -115,7 +115,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
             .title-text {{ font-weight: 600; color: #ffffff; font-size: 0.9rem; }}
             .copy-btn {{ background-color: #363945; color: #e0e0e0; border: 1px solid #484c5a; padding: 3px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
             .copy-btn:hover {{ background-color: #484c5a; color: #ffffff; }}
-            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 220px; min-height: 220px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 0.75rem; height: 230px; min-height: 230px; overflow-y: auto; font-family: monospace, Consolas, "Courier New"; font-size: 0.88rem; line-height: 1.5; color: #e0e0e0; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
             .prompt-box::-webkit-scrollbar {{ width: 5px; }}
             .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; }}
             .prompt-box::-webkit-scrollbar-thumb {{ background: #363945; border-radius: 3px; }}
@@ -149,7 +149,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body>
     </html>
     """
-  components.html(html_code, height=260)
+  components.html(html_code, height=270)
 
 
 # Hiển thị ảnh xem trước
@@ -162,9 +162,9 @@ def render_clickable_image(img_b64, caption, uploader_index):
         <style>
             * {{ box-sizing: border-box; }}
             body {{ margin: 0; padding: 0; background-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }}
-            .img-container {{ position: relative; width: 100%; height: 135px; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1.5px dashed #484c5a; transition: all 0.25s ease; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; }}
+            .img-container {{ position: relative; width: 100%; height: 130px; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1.5px dashed #484c5a; transition: all 0.25s ease; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; }}
             .img-container:hover {{ border-color: #28a745; box-shadow: 0 0 12px rgba(40, 167, 69, 0.35); }}
-            .img-container img {{ max-height: 125px; width: 100%; object-fit: contain; display: block; transition: filter 0.25s ease, transform 0.25s ease; }}
+            .img-container img {{ max-height: 120px; width: 100%; object-fit: contain; display: block; transition: filter 0.25s ease, transform 0.25s ease; }}
             .img-container:hover img {{ filter: brightness(0.45); transform: scale(1.01); }}
             .overlay-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ffffff; font-weight: 700; font-size: 0.82rem; background: rgba(38, 39, 48, 0.92); padding: 6px 12px; border-radius: 16px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; white-space: nowrap; border: 1px solid #28a745; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }}
             .img-container:hover .overlay-text {{ opacity: 1; }}
@@ -202,14 +202,14 @@ def render_clickable_image(img_b64, caption, uploader_index):
     </body>
     </html>
     """
-  components.html(html_code, height=160)
+  components.html(html_code, height=155)
 
 
 # CSS GIAO DIỆN HỆ THỐNG
 st.markdown(
     """
 <style>
-/* Đảm bảo trang web không bị khoá cứng gây cắt mất giao diện */
+/* Cho phép cuộn mượt mà toàn trang khi màn hình nhỏ */
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     overflow-x: hidden !important;
     overflow-y: auto !important;
@@ -228,7 +228,6 @@ div[data-testid="stHeader"] *, header[data-testid="stHeader"] * {
 
 section[data-testid="stSidebar"] { display: none !important; }
 
-/* Căn chỉnh block container gọn gàng, vừa vặn màn hình desktop/laptop */
 .block-container {
     padding-top: 2.8rem !important;
     padding-bottom: 1.0rem !important;
@@ -258,24 +257,33 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-/* Sửa lỗi iframe Custom Component bị đè phẳng/biến mất khi chuyển Tab */
+/* Đảm bảo iframe không bị đè phẳng/mất chiều cao khi ẩn hiện giữa các Tab */
 iframe[data-testid="stCustomComponentV1"], iframe {
     width: 100% !important;
-    min-height: 260px !important;
+    min-height: 270px !important;
     display: block !important;
 }
 
-/* Khung Expander 2 bên linh hoạt cuộn mượt mà, không cắt mất Mục 4 */
+/* Đồng bộ Cột 1, Cột 2, Cột 3 CÙNG MỘT ĐƯỜNG ĐÁY */
+div[data-testid="stColumn"] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Khung Expander bên trái & bên phải mở rộng tràn đầy chiều cao cột */
 div[data-testid="stExpander"] {
     background-color: #1e1e24 !important;
     border: 1px solid #363945 !important;
     border-radius: 10px !important;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-    margin-bottom: 0.5rem !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
 }
 div[data-testid="stExpander"] details {
     display: flex !important;
     flex-direction: column !important;
+    height: 100% !important;
 }
 div[data-testid="stExpander"] details summary {
     font-weight: 600 !important;
@@ -285,17 +293,17 @@ div[data-testid="stExpander"] details summary {
 }
 div[data-testid="stExpander"] details > div[role="region"] {
     overflow-y: auto !important;
-    max-height: calc(100vh - 10.5rem) !important;
+    flex: 1 !important;
     padding: 0.3rem 0.4rem !important;
 }
 
-/* Tối ưu khoảng cách các container bên trong expander để vừa vặn cả 4 mục */
+/* Tối ưu khoảng cách các container bên trong expander */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     border-radius: 8px !important;
     background-color: #262730 !important;
     border: 1px solid #363945 !important;
-    margin-bottom: 0.25rem !important;
-    padding: 0.3rem 0.5rem !important;
+    margin-bottom: 0.3rem !important;
+    padding: 0.35rem 0.5rem !important;
 }
 
 div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stMarkdownContainer"] p {
@@ -317,14 +325,14 @@ div[data-testid="stFileUploader"]:has(button[title="Remove file"]),
 div[data-testid="stFileUploader"]:has(button[aria-label*="Remove"]),
 div[data-testid="stFileUploader"]:has(ul) { position: absolute !important; opacity: 0 !important; height: 0 !important; width: 0 !important; max-height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; pointer-events: none !important; }
 
-div[data-testid="stTextArea"] textarea { height: 70px !important; max-height: 70px !important; font-size: 0.82rem !important; }
+div[data-testid="stTextArea"] textarea { height: 65px !important; max-height: 65px !important; font-size: 0.82rem !important; }
 
 button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 34px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 button[kind="primary"]:hover { background-color: #218838 !important; }
 button[kind="secondary"] { background-color: #dc3545 !important; color: #ffffff !important; border: none !important; height: 34px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 button[kind="secondary"]:hover { background-color: #c82333 !important; }
 
-div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button { background-color: #495057 !important; color: #ffffff !important; border: none !important; height: 36px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
+div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button { background-color: #495057 !important; color: #ffffff !important; border: none !important; height: 34px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 div[data-testid="stColumn"] div[data-testid="stColumn"]:nth-child(4) button:hover { background-color: #343a40 !important; }
 </style>
 """,
@@ -371,7 +379,6 @@ if st.session_state.get("show_dog_modal", False):
   )
 
 # ==================== DANH SÁCH TÙY CHỌN ====================
-# Kịch bản ánh sáng Ngoại thất (7 tùy chọn)
 lighting_ext_options = [
     "A1 - Nắng sáng sớm trong trẻo (Bright Early Morning Sun)",
     (
@@ -391,7 +398,6 @@ lighting_ext_options = [
     "A7 - Sau mưa / Sân ướt phản chiếu (Post-Rain Wet Surface Reflections)",
 ]
 
-# Bối cảnh Môi trường Ngoại thất (4 tùy chọn)
 context_ext_options = [
     "C1 - Phố thị hiện đại (Urban Street & Paved Sidewalk - Natural Layout)",
     (
@@ -408,7 +414,6 @@ context_ext_options = [
     ),
 ]
 
-# Hiệu ứng hình ảnh & Nhiếp ảnh Ngoại thất (6 tùy chọn)
 film_ext_options = [
     "B0 - None (Màu nguyên bản công trình)",
     (
@@ -427,7 +432,6 @@ film_ext_options = [
     ),
 ]
 
-# Kịch bản ánh sáng Nội thất (10 tùy chọn)
 lighting_int_options = [
     "I1 - Nắng sáng sớm qua rèm voan (Soft Morning Sun & Sheer Curtains)",
     "I2 - Nắng trưa tương phản cao (High Noon & Crisp Shadows)",
@@ -450,7 +454,6 @@ lighting_int_options = [
     "I10 - Đèn dải màu / Gaming / Bar (RGB Linear Strip & Modern Accent Light)",
 ]
 
-# Bối cảnh Môi trường Nội thất (4 tùy chọn)
 context_int_options = [
     (
         "C1 - View sân vườn nhiệt đới qua kính (Glass Wall to Tropical Garden"
@@ -470,7 +473,6 @@ context_int_options = [
     ),
 ]
 
-# Hiệu ứng hình ảnh & Nhiếp ảnh Nội thất (8 tùy chọn)
 film_int_options = [
     "F0 - None (Màu nguyên bản chất liệu)",
     (

@@ -240,10 +240,10 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI
+# HÀM XỬ LÝ GỌI API GEMINI (AUTO-MAPPING FIX LỖI 404)
 def process_gemini_analysis_split(
     api_key,
-    selected_model,
+    selected_model_display,
     lighting_opt,
     sketch_img,
     ref_img,
@@ -252,8 +252,15 @@ def process_gemini_analysis_split(
 ):
     genai.configure(api_key=api_key)
     
-    # Định dạng tên chuẩn API
-    model_name = f"models/{selected_model}" if not selected_model.startswith("models/") else selected_model
+    # 🔴 TỰ ĐỘNG THÊM HẬU TỐ "-latest" ĐỂ API GOOGLE CHẤP NHẬN 100%
+    model_mapping = {
+        "gemini-1.5-flash": "gemini-1.5-flash-latest",
+        "gemini-1.5-pro": "gemini-1.5-pro-latest",
+        "gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
+    }
+    
+    real_api_model_name = model_mapping.get(selected_model_display, "gemini-1.5-flash-latest")
+    model_name = f"models/{real_api_model_name}"
 
     model = genai.GenerativeModel(model_name)
 
@@ -309,12 +316,10 @@ with tab_ext:
 
     with col_left_e:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Ngoại thất)", expanded=True):
-            # Nhúng trạng thái tick xanh thẳng vào Label của text_input
             api_label_ext = "Gemini API Key (✅ Đã kết nối Key hệ thống):" if secret_api_key else "Gemini API Key:"
             user_api_key_ext = st.text_input(api_label_ext, type="password", key="api_key_ext_input")
             api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
             
-            # Sử dụng đúng tên chuẩn của mô hình API
             selected_model_ext = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_ext")
             light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=0, key="light_ext")
 
@@ -392,12 +397,10 @@ with tab_int:
 
     with col_left_i:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Nội thất)", expanded=True):
-            # Nhúng trạng thái tick xanh thẳng vào Label của text_input
             api_label_int = "Gemini API Key (✅ Đã kết nối Key hệ thống):" if secret_api_key else "Gemini API Key:"
             user_api_key_int = st.text_input(api_label_int, type="password", key="api_key_int_input")
             api_key_int = user_api_key_int.strip() if user_api_key_int.strip() else secret_api_key
             
-            # Sử dụng đúng tên chuẩn của mô hình API
             selected_model_int = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_int")
             light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=0, key="light_int")
 

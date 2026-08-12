@@ -23,6 +23,10 @@ if "uploader_key_int" not in st.session_state:
 if "show_dog_modal" not in st.session_state:
     st.session_state.show_dog_modal = False
 
+# Khởi tạo danh sách model mặc định toàn cục
+if "api_models" not in st.session_state:
+    st.session_state.api_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp", "gemini-pro-vision"]
+
 
 # Hàm làm sạch văn bản & xóa từ khóa cấm nhiễu của Imagen
 def clean_prompt_text(text: str) -> str:
@@ -240,7 +244,7 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI (SỬA LỖI 404 - DÙNG ĐÚNG TÊN GỐC CỦA MODEL)
+# HÀM XỬ LÝ GỌI API GEMINI
 def process_gemini_analysis_split(
     api_key,
     selected_model_display,
@@ -252,9 +256,8 @@ def process_gemini_analysis_split(
 ):
     genai.configure(api_key=api_key)
     
-    # Truyền đúng tên model lấy từ dropdown, không thêm bớt hậu tố
+    # Sử dụng chính xác model từ list được API trả về
     model_name = f"models/{selected_model_display}"
-
     model = genai.GenerativeModel(model_name)
 
     domain = "INTERIOR ARCHITECTURE" if is_interior else "EXTERIOR ARCHITECTURE"
@@ -313,7 +316,27 @@ with tab_ext:
             user_api_key_ext = st.text_input(api_label_ext, type="password", key="api_key_ext_input")
             api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
             
-            selected_model_ext = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_ext")
+            # Selectbox danh sách model và Nút fetch model động
+            selected_model_ext = st.selectbox("Model AI:", st.session_state.api_models, key="model_ext")
+            
+            if st.button("🔄 Tải danh sách Model khả dụng từ Server", key="fetch_models_ext", help="Lấy danh sách các Model mà Google cấp quyền cho API Key của bạn"):
+                if not api_key_ext:
+                    st.error("Vui lòng nhập API Key trước!")
+                else:
+                    try:
+                        genai.configure(api_key=api_key_ext)
+                        fetched_models = []
+                        for m in genai.list_models():
+                            if 'generateContent' in m.supported_generation_methods:
+                                fetched_models.append(m.name.replace("models/", ""))
+                        if fetched_models:
+                            st.session_state.api_models = fetched_models
+                            st.rerun()
+                        else:
+                            st.warning("API Key này không có model nào hỗ trợ tạo Text/Ảnh.")
+                    except Exception as e:
+                        st.error(f"Lỗi: {e}")
+
             light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=0, key="light_ext")
 
     with col_main_e:
@@ -394,7 +417,26 @@ with tab_int:
             user_api_key_int = st.text_input(api_label_int, type="password", key="api_key_int_input")
             api_key_int = user_api_key_int.strip() if user_api_key_int.strip() else secret_api_key
             
-            selected_model_int = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_int")
+            selected_model_int = st.selectbox("Model AI:", st.session_state.api_models, key="model_int")
+            
+            if st.button("🔄 Tải danh sách Model khả dụng từ Server", key="fetch_models_int", help="Lấy danh sách các Model mà Google cấp quyền cho API Key của bạn"):
+                if not api_key_int:
+                    st.error("Vui lòng nhập API Key trước!")
+                else:
+                    try:
+                        genai.configure(api_key=api_key_int)
+                        fetched_models = []
+                        for m in genai.list_models():
+                            if 'generateContent' in m.supported_generation_methods:
+                                fetched_models.append(m.name.replace("models/", ""))
+                        if fetched_models:
+                            st.session_state.api_models = fetched_models
+                            st.rerun()
+                        else:
+                            st.warning("API Key này không có model nào hỗ trợ tạo Text/Ảnh.")
+                    except Exception as e:
+                        st.error(f"Lỗi: {e}")
+
             light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=0, key="light_int")
 
     with col_main_i:

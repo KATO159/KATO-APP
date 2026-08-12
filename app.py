@@ -25,7 +25,7 @@ if "show_dog_modal" not in st.session_state:
 
 # Khởi tạo danh sách model mặc định toàn cục
 if "api_models" not in st.session_state:
-    st.session_state.api_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"]
+    st.session_state.api_models = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash-exp"]
 
 
 # Hàm làm sạch văn bản & xóa từ khóa cấm nhiễu của Imagen
@@ -317,7 +317,7 @@ with tab_ext:
             
             selected_model_ext = st.selectbox("Model AI:", st.session_state.api_models, key="model_ext")
             
-            if st.button("🔄 Tải danh sách Model khả dụng từ Server", key="fetch_models_ext", help="Lấy danh sách các Model mà Google cấp quyền cho API Key của bạn"):
+            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_ext", help="Lọc các Model xịn nhất (Pro/Flash)"):
                 if not api_key_ext:
                     st.error("Vui lòng nhập API Key trước!")
                 else:
@@ -326,12 +326,18 @@ with tab_ext:
                         fetched_models = []
                         for m in genai.list_models():
                             if 'generateContent' in m.supported_generation_methods:
-                                fetched_models.append(m.name.replace("models/", ""))
+                                name = m.name.replace("models/", "")
+                                # BỘ LỌC CỨNG: Chỉ giữ dòng Pro và Flash, loại bỏ rác (lite, preview, image, nano)
+                                if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
+                                    fetched_models.append(name)
+                        
                         if fetched_models:
+                            # Sắp xếp để bản Pro lên đầu danh sách (ưu tiên cho tác vụ kiến trúc)
+                            fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
                             st.session_state.api_models = fetched_models
                             st.rerun()
                         else:
-                            st.warning("API Key này không có model nào hỗ trợ tạo Text/Ảnh.")
+                            st.warning("API Key này không có model nào phù hợp.")
                     except Exception as e:
                         st.error(f"Lỗi: {e}")
 
@@ -361,7 +367,7 @@ with tab_ext:
         b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.ext_box3, height=65, key="box3_ext")
         b4_ext = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.ext_box4, height=65, key="box4_ext")
 
-        # NÚT COPY ĐÃ ĐƯỢC ẨN: Chỉ hiện ra khi có Prompt
+        # NÚT COPY CHỈ HIỆN KHI CÓ PROMPT
         if st.session_state.ext_box1:
             full_ext_prompt = f"{b1_ext} {b2_ext} {b3_ext} {b4_ext}".strip()
             st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
@@ -386,7 +392,6 @@ with tab_ext:
                 key=f"notes_ext_{st.session_state.uploader_key_ext}"
             )
 
-            # ĐÂY MỚI LÀ NÚT TẠO PROMPT
             analyze_btn_ext = st.button("🚀 Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_ext")
 
     if analyze_btn_ext:
@@ -421,7 +426,7 @@ with tab_int:
             
             selected_model_int = st.selectbox("Model AI:", st.session_state.api_models, key="model_int")
             
-            if st.button("🔄 Tải danh sách Model khả dụng từ Server", key="fetch_models_int", help="Lấy danh sách các Model mà Google cấp quyền cho API Key của bạn"):
+            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_int", help="Lọc các Model xịn nhất (Pro/Flash)"):
                 if not api_key_int:
                     st.error("Vui lòng nhập API Key trước!")
                 else:
@@ -430,12 +435,17 @@ with tab_int:
                         fetched_models = []
                         for m in genai.list_models():
                             if 'generateContent' in m.supported_generation_methods:
-                                fetched_models.append(m.name.replace("models/", ""))
+                                name = m.name.replace("models/", "")
+                                # BỘ LỌC CỨNG: Chỉ giữ dòng Pro và Flash, loại bỏ rác
+                                if ("pro" in name or "flash" in name) and not any(x in name for x in ["lite", "preview", "image", "omni", "nano"]):
+                                    fetched_models.append(name)
+                        
                         if fetched_models:
+                            fetched_models = sorted(list(set(fetched_models)), key=lambda x: ("pro" not in x, x))
                             st.session_state.api_models = fetched_models
                             st.rerun()
                         else:
-                            st.warning("API Key này không có model nào hỗ trợ tạo Text/Ảnh.")
+                            st.warning("API Key này không có model nào phù hợp.")
                     except Exception as e:
                         st.error(f"Lỗi: {e}")
 
@@ -465,7 +475,7 @@ with tab_int:
         b3_int = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.int_box3, height=65, key="box3_int")
         b4_int = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.int_box4, height=65, key="box4_int")
 
-        # NÚT COPY ĐÃ ĐƯỢC ẨN: Chỉ hiện ra khi có Prompt
+        # NÚT COPY CHỈ HIỆN KHI CÓ PROMPT
         if st.session_state.int_box1:
             full_int_prompt = f"{b1_int} {b2_int} {b3_int} {b4_int}".strip()
             st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
@@ -490,7 +500,6 @@ with tab_int:
                 key=f"notes_int_{st.session_state.uploader_key_int}"
             )
 
-            # ĐÂY MỚI LÀ NÚT TẠO PROMPT
             analyze_btn_int = st.button("🚀 Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_int")
 
     if analyze_btn_int:

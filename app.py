@@ -12,31 +12,19 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
 # ---------------- BỘ XỬ LÝ TRẠNG THÁI (CHỐNG LỖI STREAMLIT) ----------------
-for key in ["box1_ext", "box2_ext", "box3_ext", "box4_ext", "box1_int", "box2_int", "box3_int", "box4_int"]:
+for key in ["en_prompt_ext", "vi_prompt_ext", "en_prompt_int", "vi_prompt_int"]:
     if key not in st.session_state:
         st.session_state[key] = ""
 
-if "pending_ext_boxes" in st.session_state:
-    st.session_state.box1_ext = st.session_state.pending_ext_boxes[0]
-    st.session_state.box2_ext = st.session_state.pending_ext_boxes[1]
-    st.session_state.box3_ext = st.session_state.pending_ext_boxes[2]
-    st.session_state.box4_ext = st.session_state.pending_ext_boxes[3]
-    del st.session_state.pending_ext_boxes
+if "pending_ext_prompts" in st.session_state:
+    st.session_state.en_prompt_ext = st.session_state.pending_ext_prompts[0]
+    st.session_state.vi_prompt_ext = st.session_state.pending_ext_prompts[1]
+    del st.session_state.pending_ext_prompts
 
-if "pending_int_boxes" in st.session_state:
-    st.session_state.box1_int = st.session_state.pending_int_boxes[0]
-    st.session_state.box2_int = st.session_state.pending_int_boxes[1]
-    st.session_state.box3_int = st.session_state.pending_int_boxes[2]
-    st.session_state.box4_int = st.session_state.pending_int_boxes[3]
-    del st.session_state.pending_int_boxes
-
-if "pending_ext_tag" in st.session_state:
-    st.session_state.box2_ext += st.session_state.pending_ext_tag
-    del st.session_state.pending_ext_tag
-
-if "pending_int_tag" in st.session_state:
-    st.session_state.box2_int += st.session_state.pending_int_tag
-    del st.session_state.pending_int_tag
+if "pending_int_prompts" in st.session_state:
+    st.session_state.en_prompt_int = st.session_state.pending_int_prompts[0]
+    st.session_state.vi_prompt_int = st.session_state.pending_int_prompts[1]
+    del st.session_state.pending_int_prompts
 # ---------------------------------------------------------------------------
 
 if "uploader_key_ext" not in st.session_state:
@@ -61,8 +49,12 @@ def clean_prompt_text(text: str) -> str:
     cleaned = text
     for pattern in prohibited_patterns:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
-    return re.sub(r"\s+", " ", cleaned).strip()
+    # Lọc bỏ khoảng trắng thừa nhưng vẫn giữ lại ngắt dòng
+    lines = [line.strip() for line in cleaned.splitlines()]
+    return "\n\n".join([line for line in lines if line]).strip()
 
+
+# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64
 @st.cache_data(show_spinner=False)
 def file_bytes_to_b64(file_bytes: bytes) -> str:
     img = Image.open(io.BytesIO(file_bytes))
@@ -75,6 +67,8 @@ def file_bytes_to_b64(file_bytes: bytes) -> str:
         img_conv.save(buffered, format="JPEG", quality=85)
     return base64.b64encode(buffered.getvalue()).decode()
 
+
+# CACHE HÀM TẠO ẢNH CHÚ CHÓ
 @st.cache_data(show_spinner=False)
 def get_transparent_dog_b64():
     target_file = None
@@ -110,6 +104,8 @@ def get_transparent_dog_b64():
     except Exception:
         return None
 
+
+# Hiển thị ảnh xem trước
 def render_clickable_image(img_b64, caption, uploader_index):
     html_code = f"""
     <!DOCTYPE html>
@@ -146,6 +142,60 @@ def render_clickable_image(img_b64, caption, uploader_index):
     """
     components.html(html_code, height=160)
 
+
+# Giao diện Box Copy Prompt (UI Component)
+def render_prompt_card(title: str, text: str, box_id: str):
+    escaped_text = html.escape(text) if text else ""
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            * {{ box-sizing: border-box; }}
+            body {{ margin: 0; padding: 0; background-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e0e0e0; overflow: hidden; }}
+            .header-row {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }}
+            .title-text {{ font-weight: 700; color: #38bdf8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; }}
+            .copy-btn {{ background-color: #28a745; color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s ease; outline: none; }}
+            .copy-btn:hover {{ background-color: #218838; }}
+            .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 1.2rem; height: 250px; overflow-y: auto; font-family: "Courier New", Courier, monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; }}
+            .prompt-box::-webkit-scrollbar {{ width: 6px; }}
+            .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; border-radius: 8px; }}
+            .prompt-box::-webkit-scrollbar-thumb {{ background: #484c5a; border-radius: 8px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header-row">
+            <span class="title-text">{title}</span>
+            <button id="btn_{box_id}" class="copy-btn" onclick="copyText()">📋 COPY PROMPT</button>
+        </div>
+        <div id="text_{box_id}" class="prompt-box">{escaped_text}</div>
+        <script>
+        function copyText() {{
+            var el = document.getElementById("text_{box_id}");
+            if (!el) return;
+            var text = el.innerText || el.textContent;
+            var btn = document.getElementById("btn_{box_id}");
+            function onSuccess() {{
+                btn.innerHTML = "✅ ĐÃ SAO CHÉP!"; btn.style.backgroundColor = "#d97706";
+                setTimeout(function() {{ btn.innerHTML = "📋 COPY PROMPT"; btn.style.backgroundColor = "#28a745"; }}, 2000);
+            }}
+            if (navigator.clipboard && window.isSecureContext) {{ navigator.clipboard.writeText(text).then(onSuccess).catch(function() {{ fallbackCopy(text, onSuccess); }}); }}
+            else {{ fallbackCopy(text, onSuccess); }}
+        }}
+        function fallbackCopy(text, callback) {{
+            var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px"; ta.style.top = "-9999px"; document.body.appendChild(ta); ta.focus(); ta.select();
+            try {{ document.execCommand('copy'); callback(); }} catch (e) {{ alert('Vui lòng bôi đen thủ công để chép!'); }}
+            document.body.removeChild(ta);
+        }}
+        </script>
+    </body>
+    </html>
+    """
+    components.html(html_code, height=310)
+
+
+# CSS GIAO DIỆN HỆ THỐNG
 st.markdown(
     """
 <style>
@@ -184,14 +234,6 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 .custom-header-title { white-space: nowrap !important; font-size: 1.2rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; line-height: 32px !important; }
-div[data-testid="stTextArea"] textarea {
-    background-color: #1e1e24 !important;
-    color: #7dd3fc !important;
-    font-family: monospace, Consolas, "Courier New" !important;
-    font-size: 0.85rem !important;
-    border: 1px solid #363945 !important;
-    border-radius: 6px !important;
-}
 button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 38px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 button[kind="primary"]:hover { background-color: #218838 !important; }
 </style>
@@ -199,6 +241,7 @@ button[kind="primary"]:hover { background-color: #218838 !important; }
     unsafe_allow_html=True,
 )
 
+# THÔNG BÁO CHÚ CHÓ
 if st.session_state.get("show_dog_modal", False):
     st.session_state.show_dog_modal = False
     dog_b64 = get_transparent_dog_b64()
@@ -238,7 +281,7 @@ if st.session_state.get("show_dog_modal", False):
 
 # ==================== DANH SÁCH TÙY CHỌN BỔ SUNG GÓC CAMERA & NHÀ PHỐ ====================
 
-# Góc Camera (Mới)
+# Góc Camera
 camera_options = [
     "G1 - Ép cứng góc trực diện / Mặt đứng phẳng (Strictly frontal flat elevation view, dead-on camera angle, zero perspective distortion, parallel to the facade)",
     "G2 - Góc phối cảnh 3/4 tự nhiên (3/4 architectural perspective view, dynamic angle)"
@@ -305,8 +348,8 @@ film_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI (ĐÃ TÍCH HỢP KHÓA GÓC CAMERA)
-def process_gemini_analysis_split(
+# HÀM XỬ LÝ GỌI API GEMINI (PHIÊN BẢN SONG NGỮ)
+def process_gemini_analysis_bilingual(
     api_key,
     selected_model_display,
     light_opt,
@@ -343,7 +386,7 @@ def process_gemini_analysis_split(
 
     system_instruction = f"""
     You are an expert architectural prompt engineer specializing in GOOGLE LABS FLOW (ImageFX / Imagen model).
-    Analyze the sketch image of {domain} and write a 4-part natural English description.
+    Analyze the sketch image of {domain} and write a highly detailed, natural English description, then translate it into Vietnamese.
 
     CRITICAL OVERRIDE RULE FOR USER NOTES:
     - If the user provided extra notes, prioritize the user's note over the sketch line darkness/shadows. 
@@ -353,11 +396,10 @@ def process_gemini_analysis_split(
     - DO NOT use Midjourney tags (--ar, --v), resolution buzzwords (8k, 16k, photorealistic), or render engine names.
 
     OUTPUT STRUCTURE REQUIREMENT:
-    Return EXACTLY 4 sections separated by `===SECTION_SPLIT===`:
-    Section 1 (Subject & Style): A sentence starting with "A professional architectural photograph of a..." describing space type and style.
-    Section 2 (Materials & Colors): A sentence starting with "The space features..." listing exact materials and colors.
-    Section 3 (Lighting & Environment): A natural English sentence describing the following lighting and context: "{clean_light}" and "{clean_context}".
-    Section 4 (Camera Specs & Depth): Write exactly this (adapting into natural English): "{camera_instruction}"
+    Return EXACTLY 2 sections separated by `===LANG_SPLIT===`:
+    <English Prompt (One cohesive paragraph that flows naturally combining Subject, Materials, Lighting: "{clean_light}", Environment: "{clean_context}", and Camera specs: "{camera_instruction}")>
+    ===LANG_SPLIT===
+    <Vietnamese Translation of the Prompt>
     """
 
     content_inputs = [system_instruction, sketch_img]
@@ -370,26 +412,19 @@ def process_gemini_analysis_split(
         response = model.generate_content(content_inputs, safety_settings=safety_settings)
         result_text = response.text.strip()
     except Exception as e:
-        return [f"Lỗi phản hồi từ AI: {str(e)}", "", "", ""]
+        return [f"Lỗi phản hồi từ AI: {str(e)}", ""]
 
     if not result_text:
-        return ["AI trả về kết quả rỗng (Có thể do lỗi mạng hoặc ảnh không hợp lệ).", "", "", ""]
+        return ["AI trả về kết quả rỗng (Có thể do lỗi mạng hoặc ảnh không hợp lệ).", ""]
 
-    if "===SECTION_SPLIT===" in result_text:
-        parts = result_text.split("===SECTION_SPLIT===")
-        while len(parts) < 4: parts.append("")
-        return [clean_prompt_text(p) for p in parts[:4]]
+    if "===LANG_SPLIT===" in result_text:
+        parts = result_text.split("===LANG_SPLIT===")
+        en_prompt = clean_prompt_text(parts[0])
+        vn_prompt = clean_prompt_text(parts[1]) if len(parts) > 1 else ""
+        return [en_prompt, vn_prompt]
     else:
-        parts = [p.strip() for p in re.split(r'\n+', result_text) if p.strip()]
-        if len(parts) >= 4:
-            return [clean_prompt_text(p) for p in parts[:4]]
-        else:
-            return [
-                clean_prompt_text(result_text), 
-                "⚠️ LƯU Ý: AI không tách đúng 4 ô.", 
-                "Toàn bộ kết quả đã được gộp chung ở Ô số 1 bên trên.", 
-                "Bạn có thể sao chép trực tiếp nội dung ở Ô 1 để sử dụng."
-            ]
+        # Fallback if no split
+        return [clean_prompt_text(result_text), "⚠️ AI không tạo được phiên bản tiếng Việt phân tách rõ ràng."]
 
 
 # KHỞI TẠO TABS
@@ -433,39 +468,19 @@ with tab_ext:
             st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
             camera_ext = st.selectbox("Góc Camera:", camera_options, index=0, key="camera_opt_ext")
             light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=3, key="light_ext")
-            context_ext = st.selectbox("Bối cảnh môi trường:", context_ext_options, index=4, key="context_ext") # Default là C5 Nhà phố liền kề
+            context_ext = st.selectbox("Bối cảnh môi trường:", context_ext_options, index=4, key="context_ext")
             film_ext = st.selectbox("Hiệu ứng màu sắc:", film_ext_options, index=1, key="film_ext")
 
     with col_main_e:
-        st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
+        st.markdown('<p class="custom-header-title">Kết quả Prompt Tối Ưu cho ImageFX</p>', unsafe_allow_html=True)
         
-        b1_ext = st.text_area("1. Phong cách & Không gian (Box 1):", key="box1_ext", height=65)
-        b2_ext = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", key="box2_ext", height=85)
+        en_prompt_val_ext = st.session_state.en_prompt_ext if st.session_state.en_prompt_ext else "Đang chờ phân tích ảnh phác thảo..."
+        render_prompt_card("🇺🇸 PHIÊN BẢN TIẾNG ANH (DÙNG ĐỂ TẠO ẢNH):", en_prompt_val_ext, "en_ext")
         
-        st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
-        tag_cols_e = st.columns(4)
-        if tag_cols_e[0].button("+ Gỗ ốp mặt tiền", key="tag_e1"):
-            st.session_state.pending_ext_tag = ", slatted timber facade cladding"
-            st.rerun()
-        if tag_cols_e[1].button("+ Bê tông mài", key="tag_e2"):
-            st.session_state.pending_ext_tag = ", polished concrete panels"
-            st.rerun()
-        if tag_cols_e[2].button("+ Cửa kính khung đen", key="tag_e3"):
-            st.session_state.pending_ext_tag = ", black metal frame glass doors"
-            st.rerun()
-        if tag_cols_e[3].button("+ Đá ốp tự nhiên", key="tag_e4"):
-            st.session_state.pending_ext_tag = ", natural stone veneer wall"
-            st.rerun()
-
-        b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", key="box3_ext", height=65)
-        b4_ext = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", key="box4_ext", height=65)
-
-        if st.session_state.box1_ext:
-            full_ext_prompt = f"{st.session_state.box1_ext} {st.session_state.box2_ext} {st.session_state.box3_ext} {st.session_state.box4_ext}".strip()
-            st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
-            if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_ext"):
-                st.write("Đã sẵn sàng dán vào Google Labs Flow:")
-                st.code(full_ext_prompt, language="text")
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        
+        vi_prompt_val_ext = st.session_state.vi_prompt_ext if st.session_state.vi_prompt_ext else "Đang chờ bản dịch..."
+        render_prompt_card("🇻🇳 PHIÊN BẢN TIẾNG VIỆT (ĐỂ THAM KHẢO):", vi_prompt_val_ext, "vi_ext")
 
     with col_right_e:
         with st.expander("🖼️ Tải ảnh phác thảo & Chỉ định màu", expanded=True):
@@ -484,7 +499,7 @@ with tab_ext:
                 key=f"notes_ext_{st.session_state.uploader_key_ext}"
             )
 
-            analyze_btn_ext = st.button("🚀 Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_ext")
+            analyze_btn_ext = st.button("🚀 Phân tích & Tạo Prompt", type="primary", use_container_width=True, key="btn_anl_ext")
 
     if analyze_btn_ext:
         if not api_key_ext:
@@ -493,10 +508,10 @@ with tab_ext:
             st.warning("Vui lòng tải lên ảnh phác thảo Ngoại thất!")
         else:
             try:
-                boxes = process_gemini_analysis_split(
+                en_res, vi_res = process_gemini_analysis_bilingual(
                     api_key_ext, selected_model_ext, light_ext, context_ext, film_ext, camera_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False
                 )
-                st.session_state.pending_ext_boxes = boxes
+                st.session_state.pending_ext_prompts = [en_res, vi_res]
                 st.session_state.show_dog_modal = True
                 st.rerun()
             except Exception as e:
@@ -537,41 +552,21 @@ with tab_int:
                         st.error(f"Lỗi: {e}")
 
             st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
-            camera_int = st.selectbox("Góc Camera:", camera_options, index=1, key="camera_opt_int") # Default Nội thất thường là phối cảnh
+            camera_int = st.selectbox("Góc Camera:", camera_options, index=1, key="camera_opt_int") 
             light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=4, key="light_int")
             context_int = st.selectbox("Bối cảnh môi trường:", context_int_options, index=0, key="context_int")
             film_int = st.selectbox("Hiệu ứng màu sắc:", film_int_options, index=1, key="film_int")
 
     with col_main_i:
-        st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
+        st.markdown('<p class="custom-header-title">Kết quả Prompt Tối Ưu cho ImageFX</p>', unsafe_allow_html=True)
         
-        b1_int = st.text_area("1. Phong cách & Không gian (Box 1):", key="box1_int", height=65)
-        b2_int = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", key="box2_int", height=85)
+        en_prompt_val_int = st.session_state.en_prompt_int if st.session_state.en_prompt_int else "Đang chờ phân tích ảnh phác thảo..."
+        render_prompt_card("🇺🇸 PHIÊN BẢN TIẾNG ANH (DÙNG ĐỂ TẠO ẢNH):", en_prompt_val_int, "en_int")
         
-        st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
-        tag_cols_i = st.columns(4)
-        if tag_cols_i[0].button("+ Trần sơn trắng", key="tag_i1"):
-            st.session_state.pending_int_tag = ", flat smooth white painted ceiling"
-            st.rerun()
-        if tag_cols_i[1].button("+ Sàn gỗ Sồi", key="tag_i2"):
-            st.session_state.pending_int_tag = ", light oak timber floor"
-            st.rerun()
-        if tag_cols_i[2].button("+ Sofa da Cognac", key="tag_i3"):
-            st.session_state.pending_int_tag = ", plush cognac leather sofa"
-            st.rerun()
-        if tag_cols_i[3].button("+ Lam gỗ Óc chó", key="tag_i4"):
-            st.session_state.pending_int_tag = ", slatted walnut wood wall panels"
-            st.rerun()
-
-        b3_int = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", key="box3_int", height=65)
-        b4_int = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", key="box4_int", height=65)
-
-        if st.session_state.box1_int:
-            full_int_prompt = f"{st.session_state.box1_int} {st.session_state.box2_int} {st.session_state.box3_int} {st.session_state.box4_int}".strip()
-            st.markdown("<hr style='margin-top: 10px; margin-bottom: 10px;'/>", unsafe_allow_html=True)
-            if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_int"):
-                st.write("Đã sẵn sàng dán vào Google Labs Flow:")
-                st.code(full_int_prompt, language="text")
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        
+        vi_prompt_val_int = st.session_state.vi_prompt_int if st.session_state.vi_prompt_int else "Đang chờ bản dịch..."
+        render_prompt_card("🇻🇳 PHIÊN BẢN TIẾNG VIỆT (ĐỂ THAM KHẢO):", vi_prompt_val_int, "vi_int")
 
     with col_right_i:
         with st.expander("🖼️ Tải ảnh phác thảo & Chỉ định màu", expanded=True):
@@ -590,7 +585,7 @@ with tab_int:
                 key=f"notes_int_{st.session_state.uploader_key_int}"
             )
 
-            analyze_btn_int = st.button("🚀 Phân tích & Tạo 4 Ô Prompt", type="primary", use_container_width=True, key="btn_anl_int")
+            analyze_btn_int = st.button("🚀 Phân tích & Tạo Prompt", type="primary", use_container_width=True, key="btn_anl_int")
 
     if analyze_btn_int:
         if not api_key_int:
@@ -599,10 +594,10 @@ with tab_int:
             st.warning("Vui lòng tải lên ảnh phác thảo Nội thất!")
         else:
             try:
-                boxes = process_gemini_analysis_split(
+                en_res, vi_res = process_gemini_analysis_bilingual(
                     api_key_int, selected_model_int, light_int, context_int, film_int, camera_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True
                 )
-                st.session_state.pending_int_boxes = boxes
+                st.session_state.pending_int_prompts = [en_res, vi_res]
                 st.session_state.show_dog_modal = True
                 st.rerun()
             except Exception as e:

@@ -11,43 +11,33 @@ import streamlit.components.v1 as components
 # ================= CẤU HÌNH TRANG VÀ HIỆU NĂNG =================
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
-# BIÊN DỊCH SẴN REGEX: Tăng tốc độ lọc từ khóa cấm
 PROHIBITED_PATTERNS = re.compile(
     r"--[a-z0-9]+|\b8k\b|\b16k\b|\bphotorealistic\b|\bhyperrealistic\b|\bcorona render\b|\bvray\b|\boctane render\b|\bunreal engine\b|\bmasterpiece\b",
     re.IGNORECASE
 )
 
 def clean_prompt_text(text: str) -> str:
-    if not text:
-        return ""
+    if not text: return ""
     cleaned = PROHIBITED_PATTERNS.sub("", text)
     lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
     return "\n\n".join(lines).strip()
 
-# ---------------- KHỞI TẠO STATE NHẸ ----------------
+# ---------------- KHỞI TẠO STATE ----------------
 if "prompts" not in st.session_state:
     st.session_state.prompts = {"ext": {"en": "", "vi": ""}, "int": {"en": "", "vi": ""}}
 
-if "uploader_key_ext" not in st.session_state:
-    st.session_state.uploader_key_ext = 0
-if "uploader_key_int" not in st.session_state:
-    st.session_state.uploader_key_int = 0
-
 if "api_models" not in st.session_state:
     st.session_state.api_models = ["gemini-pro-latest", "gemini-flash-latest"]
-# ------------------------------------------------
 
-# TỐI ƯU HÓA HÌNH ẢNH (COMPRESSION)
+# ---------------- TỐI ƯU HÌNH ẢNH ----------------
 @st.cache_data(show_spinner=False, max_entries=10)
 def optimize_image_for_api(file_bytes: bytes) -> Image.Image:
     try:
         img = Image.open(io.BytesIO(file_bytes))
-        if img.mode != "RGB":
-            img = img.convert("RGB")
+        if img.mode != "RGB": img = img.convert("RGB")
         img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
         return img
-    except Exception as e:
-        return None
+    except Exception: return None
 
 @st.cache_data(show_spinner=False, max_entries=20)
 def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
@@ -62,8 +52,7 @@ def optimize_image_for_ui_b64(file_bytes: bytes) -> str:
             img = img.convert("RGB")
             img.save(buffered, format="JPEG", quality=75, optimize=True)
         return base64.b64encode(buffered.getvalue()).decode()
-    except:
-        return ""
+    except: return ""
 
 @st.cache_resource(show_spinner=False)
 def load_cached_dog_image():
@@ -113,26 +102,22 @@ def show_success_dog():
             setTimeout(function() {{ if (modal && modal.parentNode) modal.parentNode.removeChild(modal); }}, 1800);
         }})();
         </script>
-        """,
-        height=0,
+        """, height=0
     )
 
-# NÂNG CẤP GIAO DIỆN XEM TRƯỚC (NÚT X ĐÃ ĐƯỢC FIX LỖI)
 def render_clickable_image(img_b64, caption, uploader_index):
     dz_id = f"custom_dz_{uploader_index}"
     components.html(f"""
     <!DOCTYPE html>
     <html><head><style>
         body {{ margin: 0; background-color: transparent; font-family: sans-serif; }}
-        .img-container {{ position: relative; width: 100%; height: 140px; cursor: pointer; border-radius: 8px; overflow: hidden; border: 1.5px solid #363945; transition: 0.25s; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; box-sizing: border-box; }}
+        .img-container {{ position: relative; width: 100%; height: 140px; cursor: pointer; border-radius: 12px; overflow: hidden; border: 1.5px solid #363945; transition: 0.25s; background-color: #1e1e24; display: flex; justify-content: center; align-items: center; box-sizing: border-box; }}
         .img-container:hover, .img-container.dragover {{ border-color: #28a745; box-shadow: 0 0 15px rgba(40,167,69,0.4); }}
         .img-container img {{ max-height: 130px; width: 100%; object-fit: contain; display: block; transition: opacity 0.2s; }}
         .img-container:hover img, .img-container.dragover img {{ opacity: 0.3; }}
         .overlay-text {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 700; font-size: 0.85rem; background: rgba(38,39,48,0.95); padding: 8px 16px; border-radius: 20px; opacity: 0; transition: 0.25s; pointer-events: none; border: 1.5px solid #28a745; text-align: center; white-space: nowrap; }}
         .img-container:hover .overlay-text, .img-container.dragover .overlay-text {{ opacity: 1; }}
-        .caption-text {{ text-align: center; color: #a0a0a0; font-size: 0.75rem; margin-top: 5px; font-weight: 600; text-transform: uppercase; }}
-        
-        /* Nút Xóa (X) nằm ở góc phải - Thiết kế nổi bật */
+        .caption-text {{ text-align: center; color: #a0a0a0; font-size: 0.75rem; margin-top: 6px; font-weight: 600; text-transform: uppercase; }}
         .delete-btn {{
             position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); color: #fff;
             border-radius: 50%; width: 28px; height: 28px; display: flex; justify-content: center; align-items: center;
@@ -149,29 +134,19 @@ def render_clickable_image(img_b64, caption, uploader_index):
         <div class="caption-text">{caption}</div>
         <script>
         const dz = document.getElementById('{dz_id}');
-        
-        // HÀM XÓA ẢNH ĐÃ ĐƯỢC FIX
         function deleteImage(e) {{
-            e.stopPropagation(); // Chặn sự kiện click nhầm vào đổi ảnh
+            e.stopPropagation();
             try {{
-                const uploaders = window.parent.document.querySelectorAll('[data-testid="stFileUploader"]');
-                const targetUploader = uploaders[{uploader_index}];
+                const targetUploader = window.parent.document.querySelectorAll('[data-testid="stFileUploader"]')[{uploader_index}];
                 if(targetUploader) {{
-                    // Tìm đúng nút X của Streamlit đang bị làm mờ (opacity: 0)
                     const delBtn = targetUploader.querySelector('button[aria-label="Remove file"], [data-testid="stUploadedFile"] button');
-                    if(delBtn) {{
-                        delBtn.click();
-                    }}
+                    if(delBtn) delBtn.click();
                 }}
-            }} catch(err) {{ console.error(err); }}
+            }} catch(err) {{}}
         }}
-        
-        // Click để upload file mới đè lên
         dz.addEventListener('click', () => {{
             try {{ window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}].click(); }} catch(e) {{}}
         }});
-        
-        // Kéo thả file đè lên ảnh cũ
         dz.addEventListener('dragover', (e) => {{ e.preventDefault(); dz.classList.add('dragover'); }});
         dz.addEventListener('dragleave', (e) => {{ e.preventDefault(); dz.classList.remove('dragover'); }});
         dz.addEventListener('drop', (e) => {{
@@ -187,7 +162,7 @@ def render_clickable_image(img_b64, caption, uploader_index):
         }});
         </script>
     </body></html>
-    """, height=170)
+    """, height=180)
 
 def render_prompt_card(title: str, text: str, box_id: str):
     escaped_text = html.escape(text) if text else ""
@@ -199,7 +174,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
         .title-text {{ font-weight: 700; color: #38bdf8; font-size: 0.9rem; letter-spacing: 0.5px; text-transform: uppercase; }}
         .copy-btn {{ background-color: #28a745; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s; outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
         .copy-btn:hover {{ background-color: #218838; transform: translateY(-1px); }}
-        .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 1.2rem; height: 260px; overflow-y: auto; font-family: "Courier New", Courier, monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; }}
+        .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 12px; padding: 1.2rem; height: 260px; overflow-y: auto; font-family: "Courier New", Courier, monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); }}
         .prompt-box::-webkit-scrollbar {{ width: 6px; }}
         .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; border-radius: 8px; }}
         .prompt-box::-webkit-scrollbar-thumb {{ background: #484c5a; border-radius: 8px; }}
@@ -225,7 +200,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
     </body></html>
     """, height=320)
 
-# CSS TỐI ƯU HÓA HOÀN TOÀN KHUNG TẢI ẢNH MẶC ĐỊNH
+# ================= CSS TỐI ƯU HÓA HOÀN TOÀN GIAO DIỆN UPLOAD =================
 st.markdown("""
 <style>
 html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] { overflow-x: hidden !important; overflow-y: auto !important; }
@@ -236,17 +211,50 @@ div[data-baseweb="tab-list"] { z-index: 999999 !important; position: relative !i
 button[data-baseweb="tab"] { font-size: 1.0rem !important; font-weight: 700 !important; padding: 0.4rem 1.5rem !important; border-radius: 8px 8px 0 0 !important; }
 button[aria-selected="true"] { background-color: #262730 !important; color: #28a745 !important; border-bottom: 3px solid #28a745 !important; }
 .custom-header-title { font-size: 1.2rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; line-height: 32px !important; }
-button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 42px !important; border-radius: 6px !important; font-weight: 700 !important; font-size: 0.95rem !important; transition: 0.2s !important; }
+button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 44px !important; border-radius: 8px !important; font-weight: 700 !important; font-size: 0.95rem !important; transition: 0.2s !important; }
 button[kind="primary"]:hover { background-color: #218838 !important; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(40,167,69,0.3); }
 div[data-testid="stSelectbox"] label { font-size: 0.85rem !important; font-weight: 600 !important; color: #a0a0a0 !important;}
 
-/* ================= ẨN THÔNG MINH KHUNG TẢI ẢNH ================= */
-/* Khi file uploader đã ngậm file, ẩn hoàn toàn khu vực Kéo Thả (Dropzone) mặc định */
-[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) [data-testid="stFileUploadDropzone"] {
+/* ---------------- TÙY CHỈNH KHUNG UPLOAD TRỐNG (GIỐNG ẢNH YÊU CẦU) ---------------- */
+[data-testid="stFileUploadDropzone"] {
+    background-color: transparent !important;
+    border: 1.5px dashed #484c5a !important;
+    border-radius: 12px !important;
+    min-height: 130px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.25s ease !important;
+    padding: 0 !important;
+}
+[data-testid="stFileUploadDropzone"]:hover {
+    border-color: #28a745 !important;
+    background-color: rgba(40,167,69,0.05) !important;
+    box-shadow: 0 0 15px rgba(40,167,69,0.2) !important;
+}
+
+/* Ẩn cục rườm rà mặc định (Đám mây, Chữ tiếng Anh, Limit 200MB...) */
+[data-testid="stFileUploadDropzone"] > div > div {
     display: none !important;
 }
 
-/* Biến Cục thông tin File thành vô hình để nhường chỗ cho ảnh xem trước, NHƯNG VẪN NHẬN ĐƯỢC CLICK TỪ JS */
+/* Ghi đè chữ và icon mới chuyên nghiệp hơn */
+[data-testid="stFileUploadDropzone"]::before {
+    content: "🖼️\\000A Tải lên thiết kế";
+    white-space: pre-wrap;
+    text-align: center;
+    color: #a0a0a0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 2.2;
+    pointer-events: none; /* Không chặn click chuột */
+}
+
+/* ---------------- ẨN THÔNG MINH KHUNG TẢI ẢNH KHI ĐÃ CÓ ẢNH ---------------- */
+[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) [data-testid="stFileUploadDropzone"] {
+    display: none !important;
+}
 [data-testid="stUploadedFile"] {
     position: absolute !important;
     opacity: 0 !important;
@@ -359,28 +367,27 @@ def process_gemini_analysis_bilingual(
         tag_requirement = "CRITICAL: You MUST explicitly include the exact text tags '@ảnh phác thảo' (for the first input image) and '@ảnh tham chiếu' (for the second input image) naturally within BOTH the English and Vietnamese paragraphs. DO NOT translate these tags."
         if only_light_ref:
             ref_instruction = """
-            REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY FROM REF):
+            REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY):
             Analyze the second provided image (Reference Image). Extract ONLY its lighting scenario, mood, and atmosphere.
             STRICTLY PRESERVE the geometric structure, material textures, and colors from the first image (Sketch Image).
-            - English requirement: Explicitly use the tags "@ảnh phác thảo" for geometry/materials and "@ảnh tham chiếu" for lighting within the English text. Example: "The structure and materials exactly match @ảnh phác thảo, while the lighting mood strictly follows @ảnh tham chiếu."
+            - English requirement: Explicitly use the tags "@ảnh phác thảo" for geometry/materials and "@ảnh tham chiếu" for lighting. Example: "The structure exactly matches @ảnh phác thảo, while the lighting mood follows @ảnh tham chiếu."
             """
         else:
             ref_instruction = """
             REFERENCE IMAGE INSTRUCTION (FULL BLEND):
-            Analyze the second provided image (Reference Image). Extract its surrounding environmental context, lighting scenario, and primary material/color palette.
-            Apply these extracted styles seamlessly onto the structural geometry of the first image (Sketch Image).
-            - English requirement: Explicitly use BOTH tags "@ảnh phác thảo" and "@ảnh tham chiếu" naturally within the English text. Example: "The geometric structure follows @ảnh phác thảo, heavily inspired by the style, materials, and lighting of @ảnh tham chiếu."
+            Analyze the second provided image. Extract its environmental context, lighting, and material/color palette. Apply these styles seamlessly onto the structural geometry of the first image.
+            - English requirement: Explicitly use BOTH tags "@ảnh phác thảo" and "@ảnh tham chiếu" naturally. Example: "The geometric structure follows @ảnh phác thảo, inspired by the style and lighting of @ảnh tham chiếu."
             """
 
     system_instruction = f"""
-    You are an expert architectural prompt engineer specializing in GOOGLE LABS FLOW (ImageFX / Imagen model).
+    You are an expert architectural prompt engineer for GOOGLE LABS FLOW (Imagen model).
     Analyze the {domain} images and write a highly detailed, natural English description, then translate it into Vietnamese.
 
-    CRITICAL INSTRUCTIONS FOR AI:
-    1. AUTOMATIC CAMERA ANGLE: Carefully analyze the first image (Sketch) to determine the exact camera angle and perspective (e.g., strictly frontal flat elevation, 3/4 architectural perspective, bird's-eye view, eye-level wide angle). Incorporate this perspective into the description.
+    CRITICAL INSTRUCTIONS:
+    1. AUTOMATIC CAMERA ANGLE: Carefully analyze the first image (Sketch) to determine the exact camera angle (frontal flat elevation, 3/4 perspective, eye-level wide angle). Incorporate this perspective into the description.
     2. OVERRIDE RULE: If user provided extra notes, prioritize the user's note over the image details.
     {ref_instruction}
-    3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags (--ar, --v), resolution buzzwords, or render engine names. DO NOT bold or format the tags (@ảnh phác thảo, @ảnh tham chiếu).
+    3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags or render engine names. DO NOT bold the @ tags.
 
     OUTPUT STRUCTURE REQUIREMENT:
     Return EXACTLY 2 sections separated by `===LANG_SPLIT===`:
@@ -388,17 +395,11 @@ def process_gemini_analysis_bilingual(
     ===LANG_SPLIT===
     <Vietnamese Paragraph>
     
-    The English paragraph MUST flow naturally combining:
-    - Subject/Style
-    - Materials/Colors (Adhering to the Reference Image Instructions)
-    - The AUTO-DETECTED Camera Angle
-    - Lighting: "{clean_light}" (Blended with specific rules above if any)
-    - Environment: "{clean_context}"
-    - Camera details: "Shot on Hasselblad H6D-100c. {film_instruction}"
+    The English paragraph MUST flow naturally combining: Subject/Style, Materials/Colors, The AUTO-DETECTED Camera Angle, Lighting: "{clean_light}", Environment: "{clean_context}", and Camera details: "Shot on Hasselblad H6D-100c. {film_instruction}"
     
     {tag_requirement}
-    Make sure the Vietnamese paragraph is a precise and natural translation of the English prompt and explicitly keeps the required tags ("@ảnh phác thảo", "@ảnh tham chiếu") un-translated.
-    Do not include the < > brackets or any other labels. Just output the plain text paragraphs.
+    Make sure the Vietnamese paragraph is a precise translation and explicitly keeps the required tags ("@ảnh phác thảo", "@ảnh tham chiếu") un-translated.
+    Do not include the < > brackets. Just output the plain text paragraphs.
     """
 
     content_inputs = [system_instruction, sketch_img]
@@ -412,8 +413,8 @@ def process_gemini_analysis_bilingual(
             parts = res.split("===LANG_SPLIT===")
             return clean_prompt_text(parts[0]), clean_prompt_text(parts[1]) if len(parts)>1 else ""
         return clean_prompt_text(res), "⚠️ AI không phân tách được tiếng Việt."
-    except Exception as e:
-        return f"Lỗi gọi API: {str(e)}", ""
+    except Exception as e: return f"Lỗi gọi API: {str(e)}", ""
+
 
 # ==================== GIAO DIỆN CHÍNH ====================
 tab_ext, tab_int = st.tabs(["🏛️ NGOẠI THẤT", "🛋️ NỘI THẤT"])
@@ -451,7 +452,7 @@ with tab_ext:
 
     with col_right_e:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
-            st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 5px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
 
             sketch_preview_ext_ph = st.empty()
             sketch_file_ext = st.file_uploader("Tải ảnh phác thảo Ngoại thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="s_up_ext")
@@ -465,7 +466,7 @@ with tab_ext:
             
             r_col1_e, r_col2_e = st.columns([0.65, 0.35], vertical_alignment="bottom")
             with r_col1_e:
-                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 5px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
             with r_col2_e:
                 only_light_ref_ext = st.checkbox("Chỉ lấy sáng", value=False, key="light_ref_ext", help="Chỉ mượn ánh sáng và nhiệt độ màu của ảnh này")
                 
@@ -497,7 +498,7 @@ with tab_ext:
 
     with main_placeholder_ext.container():
         render_prompt_card("🇺🇸 BẢN TIẾNG ANH (DÙNG ĐỂ TẠO ẢNH):", st.session_state.prompts["ext"]["en"] or "Đang chờ phân tích...", "en_ext")
-        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
         render_prompt_card("🇻🇳 BẢN TIẾNG VIỆT (ĐỂ THAM KHẢO):", st.session_state.prompts["ext"]["vi"] or "Đang chờ bản dịch...", "vi_ext")
 
 
@@ -532,7 +533,7 @@ with tab_int:
 
     with col_right_i:
         with st.expander("🖼️ Tải ảnh phác thảo & Tham chiếu", expanded=True):
-            st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 5px;'>Ảnh phác thảo (Bắt buộc):</p>", unsafe_allow_html=True)
 
             sketch_preview_int_ph = st.empty()
             sketch_file_int = st.file_uploader("Tải ảnh phác thảo Nội thất", type=["png", "jpg", "jpeg", "webp"], label_visibility="collapsed", key="s_up_int")
@@ -546,7 +547,7 @@ with tab_int:
             
             r_col1_i, r_col2_i = st.columns([0.65, 0.35], vertical_alignment="bottom")
             with r_col1_i:
-                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 2px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
+                st.markdown("<p style='font-size: 0.85rem; font-weight: 600; color: #a0a0a0; margin-bottom: 5px;'>Ảnh tham chiếu (Tùy chọn):</p>", unsafe_allow_html=True)
             with r_col2_i:
                 only_light_ref_int = st.checkbox("Chỉ lấy sáng", value=False, key="light_ref_int", help="Chỉ mượn ánh sáng và nhiệt độ màu của ảnh này")
 
@@ -581,5 +582,5 @@ with tab_int:
 
     with main_placeholder_int.container():
         render_prompt_card("🇺🇸 BẢN TIẾNG ANH (DÙNG ĐỂ TẠO ẢNH):", st.session_state.prompts["int"]["en"] or "Đang chờ phân tích...", "en_int")
-        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
         render_prompt_card("🇻🇳 BẢN TIẾNG VIỆT (ĐỂ THAM KHẢO):", st.session_state.prompts["int"]["vi"] or "Đang chờ bản dịch...", "vi_int")

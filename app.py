@@ -12,12 +12,10 @@ import streamlit.components.v1 as components
 st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
 # ---------------- BỘ XỬ LÝ TRẠNG THÁI (CHỐNG LỖI STREAMLIT) ----------------
-# 1. Khởi tạo khóa dữ liệu nếu chưa có
 for key in ["box1_ext", "box2_ext", "box3_ext", "box4_ext", "box1_int", "box2_int", "box3_int", "box4_int"]:
     if key not in st.session_state:
         st.session_state[key] = ""
 
-# 2. Xử lý Hàng chờ kết quả AI (Chuyển dữ liệu vào Box NGAY TỪ ĐẦU SCRIPT)
 if "pending_ext_boxes" in st.session_state:
     st.session_state.box1_ext = st.session_state.pending_ext_boxes[0]
     st.session_state.box2_ext = st.session_state.pending_ext_boxes[1]
@@ -32,7 +30,6 @@ if "pending_int_boxes" in st.session_state:
     st.session_state.box4_int = st.session_state.pending_int_boxes[3]
     del st.session_state.pending_int_boxes
 
-# 3. Xử lý Hàng chờ khi bấm Nút Tag Vật liệu
 if "pending_ext_tag" in st.session_state:
     st.session_state.box2_ext += st.session_state.pending_ext_tag
     del st.session_state.pending_ext_tag
@@ -49,12 +46,10 @@ if "uploader_key_int" not in st.session_state:
 if "show_dog_modal" not in st.session_state:
     st.session_state.show_dog_modal = False
 
-# Khởi tạo danh sách model mặc định toàn cục
 if "api_models" not in st.session_state:
     st.session_state.api_models = ["gemini-pro-latest", "gemini-flash-latest"]
 
 
-# Hàm làm sạch văn bản & xóa từ khóa cấm nhiễu của Imagen
 def clean_prompt_text(text: str) -> str:
     if not text:
         return ""
@@ -68,8 +63,6 @@ def clean_prompt_text(text: str) -> str:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
     return re.sub(r"\s+", " ", cleaned).strip()
 
-
-# CACHE HÀM CHUYỂN ĐỔI ẢNH SANG BASE64
 @st.cache_data(show_spinner=False)
 def file_bytes_to_b64(file_bytes: bytes) -> str:
     img = Image.open(io.BytesIO(file_bytes))
@@ -82,8 +75,6 @@ def file_bytes_to_b64(file_bytes: bytes) -> str:
         img_conv.save(buffered, format="JPEG", quality=85)
     return base64.b64encode(buffered.getvalue()).decode()
 
-
-# CACHE HÀM TẠO ẢNH CHÚ CHÓ
 @st.cache_data(show_spinner=False)
 def get_transparent_dog_b64():
     target_file = None
@@ -119,8 +110,6 @@ def get_transparent_dog_b64():
     except Exception:
         return None
 
-
-# Hiển thị ảnh xem trước
 def render_clickable_image(img_b64, caption, uploader_index):
     html_code = f"""
     <!DOCTYPE html>
@@ -157,8 +146,6 @@ def render_clickable_image(img_b64, caption, uploader_index):
     """
     components.html(html_code, height=160)
 
-
-# CSS GIAO DIỆN HỆ THỐNG
 st.markdown(
     """
 <style>
@@ -212,7 +199,6 @@ button[kind="primary"]:hover { background-color: #218838 !important; }
     unsafe_allow_html=True,
 )
 
-# THÔNG BÁO CHÚ CHÓ
 if st.session_state.get("show_dog_modal", False):
     st.session_state.show_dog_modal = False
     dog_b64 = get_transparent_dog_b64()
@@ -250,7 +236,13 @@ if st.session_state.get("show_dog_modal", False):
         height=0,
     )
 
-# ==================== DANH SÁCH TÙY CHỌN (KHÔI PHỤC TỪ BẢN GỐC) ====================
+# ==================== DANH SÁCH TÙY CHỌN BỔ SUNG GÓC CAMERA & NHÀ PHỐ ====================
+
+# Góc Camera (Mới)
+camera_options = [
+    "G1 - Ép cứng góc trực diện / Mặt đứng phẳng (Strictly frontal flat elevation view, dead-on camera angle, zero perspective distortion, parallel to the facade)",
+    "G2 - Góc phối cảnh 3/4 tự nhiên (3/4 architectural perspective view, dynamic angle)"
+]
 
 # Ngoại thất
 lighting_ext_options = [
@@ -267,7 +259,8 @@ context_ext_options = [
     "C1 - Phố thị hiện đại (Urban Street & Paved Sidewalk - Natural Layout)",
     "C2 - Biệt thự sân vườn nhiệt đới (Tropical Villa Garden & Pool - Gentle Greenery)",
     "C3 - Ngoại ô / Khu nghỉ dưỡng (Suburban Resort & Nature Greenery - Balanced Surroundings)",
-    "C4 - Mặt đường sau mưa (Post-Rain Wet Asphalt Reflections - Realistic Night Reflections)"
+    "C4 - Mặt đường sau mưa (Post-Rain Wet Asphalt Reflections - Realistic Night Reflections)",
+    "C5 - Nhà phố liền kề / Đường thẳng (Mid-block townhouse on a straight continuous street, flanked by adjacent buildings, strictly not a corner lot)"
 ]
 
 film_ext_options = [
@@ -312,13 +305,14 @@ film_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI
+# HÀM XỬ LÝ GỌI API GEMINI (ĐÃ TÍCH HỢP KHÓA GÓC CAMERA)
 def process_gemini_analysis_split(
     api_key,
     selected_model_display,
     light_opt,
     context_opt,
     film_opt,
+    camera_opt,
     sketch_img,
     ref_img,
     extra_notes,
@@ -337,15 +331,15 @@ def process_gemini_analysis_split(
 
     domain = "INTERIOR ARCHITECTURE" if is_interior else "EXTERIOR ARCHITECTURE"
 
-    # Lọc chuỗi tiếng Việt lấy cụm mô tả
     clean_light = light_opt.split(" - ")[1] if " - " in light_opt else light_opt
     clean_context = context_opt.split(" - ")[1] if " - " in context_opt else context_opt
     clean_film = film_opt.split(" - ")[1] if " - " in film_opt else film_opt
+    clean_camera = camera_opt.split(" - ")[1] if " - " in camera_opt else camera_opt
 
     if "B0" in film_opt or "F0" in film_opt:
-        camera_instruction = "Shot on Hasselblad H6D-100c, wide-angle lens, straight vertical lines, eye-level view, crisp surface textures, natural true-to-life colors without any film filter."
+        camera_instruction = f"Shot on Hasselblad H6D-100c, {clean_camera}, crisp surface textures, natural true-to-life colors without any film filter."
     else:
-        camera_instruction = f"Shot on Hasselblad H6D-100c, wide-angle lens, straight vertical lines, eye-level view, crisp surface textures. Apply {clean_film} photography style and color grading."
+        camera_instruction = f"Shot on Hasselblad H6D-100c, {clean_camera}, crisp surface textures. Apply {clean_film} photography style and color grading."
 
     system_instruction = f"""
     You are an expert architectural prompt engineer specializing in GOOGLE LABS FLOW (ImageFX / Imagen model).
@@ -415,7 +409,7 @@ with tab_ext:
             
             selected_model_ext = st.selectbox("Model AI:", st.session_state.api_models, key="model_ext")
             
-            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_ext"):
+            if st.button("🔄 Tải danh sách Model tốt nhất", key="fetch_models_ext"):
                 if not api_key_ext:
                     st.error("Vui lòng nhập API Key trước!")
                 else:
@@ -436,10 +430,10 @@ with tab_ext:
                     except Exception as e:
                         st.error(f"Lỗi: {e}")
 
-            # ĐÃ KHÔI PHỤC: 3 Tùy chọn chi tiết
             st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+            camera_ext = st.selectbox("Góc Camera:", camera_options, index=0, key="camera_opt_ext")
             light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=3, key="light_ext")
-            context_ext = st.selectbox("Bối cảnh môi trường:", context_ext_options, index=1, key="context_ext")
+            context_ext = st.selectbox("Bối cảnh môi trường:", context_ext_options, index=4, key="context_ext") # Default là C5 Nhà phố liền kề
             film_ext = st.selectbox("Hiệu ứng màu sắc:", film_ext_options, index=1, key="film_ext")
 
     with col_main_e:
@@ -500,7 +494,7 @@ with tab_ext:
         else:
             try:
                 boxes = process_gemini_analysis_split(
-                    api_key_ext, selected_model_ext, light_ext, context_ext, film_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False
+                    api_key_ext, selected_model_ext, light_ext, context_ext, film_ext, camera_ext, sketch_img_ext, ref_img_ext, extra_notes_ext, is_interior=False
                 )
                 st.session_state.pending_ext_boxes = boxes
                 st.session_state.show_dog_modal = True
@@ -521,7 +515,7 @@ with tab_int:
             
             selected_model_int = st.selectbox("Model AI:", st.session_state.api_models, key="model_int")
             
-            if st.button("🔄 Tải danh sách Model tốt nhất từ Server", key="fetch_models_int"):
+            if st.button("🔄 Tải danh sách Model tốt nhất", key="fetch_models_int"):
                 if not api_key_int:
                     st.error("Vui lòng nhập API Key trước!")
                 else:
@@ -542,8 +536,8 @@ with tab_int:
                     except Exception as e:
                         st.error(f"Lỗi: {e}")
 
-            # ĐÃ KHÔI PHỤC: 3 Tùy chọn chi tiết
             st.markdown("<hr style='margin: 10px 0;'>", unsafe_allow_html=True)
+            camera_int = st.selectbox("Góc Camera:", camera_options, index=1, key="camera_opt_int") # Default Nội thất thường là phối cảnh
             light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=4, key="light_int")
             context_int = st.selectbox("Bối cảnh môi trường:", context_int_options, index=0, key="context_int")
             film_int = st.selectbox("Hiệu ứng màu sắc:", film_int_options, index=1, key="film_int")
@@ -606,7 +600,7 @@ with tab_int:
         else:
             try:
                 boxes = process_gemini_analysis_split(
-                    api_key_int, selected_model_int, light_int, context_int, film_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True
+                    api_key_int, selected_model_int, light_int, context_int, film_int, camera_int, sketch_img_int, ref_img_int, extra_notes_int, is_interior=True
                 )
                 st.session_state.pending_int_boxes = boxes
                 st.session_state.show_dog_modal = True

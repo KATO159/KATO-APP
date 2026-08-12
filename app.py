@@ -117,7 +117,7 @@ def show_success_dog():
         height=0,
     )
 
-# ----------------- NÂNG CẤP GIAO DIỆN XEM TRƯỚC (CÓ NÚT XÓA + KÉO THẢ) -----------------
+# NÂNG CẤP GIAO DIỆN XEM TRƯỚC (NÚT X ĐÃ ĐƯỢC FIX LỖI)
 def render_clickable_image(img_b64, caption, uploader_index):
     dz_id = f"custom_dz_{uploader_index}"
     components.html(f"""
@@ -132,17 +132,17 @@ def render_clickable_image(img_b64, caption, uploader_index):
         .img-container:hover .overlay-text, .img-container.dragover .overlay-text {{ opacity: 1; }}
         .caption-text {{ text-align: center; color: #a0a0a0; font-size: 0.75rem; margin-top: 5px; font-weight: 600; text-transform: uppercase; }}
         
-        /* Nút Xóa (X) nằm ở góc phải */
+        /* Nút Xóa (X) nằm ở góc phải - Thiết kế nổi bật */
         .delete-btn {{
-            position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.65); color: white;
-            border-radius: 50%; width: 26px; height: 26px; display: flex; justify-content: center; align-items: center;
-            font-size: 13px; font-weight: bold; z-index: 10; transition: 0.2s; border: 1.5px solid transparent;
+            position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.7); color: #fff;
+            border-radius: 50%; width: 28px; height: 28px; display: flex; justify-content: center; align-items: center;
+            font-size: 14px; font-weight: bold; z-index: 10; transition: 0.2s; border: 1.5px solid rgba(255,255,255,0.3);
         }}
-        .delete-btn:hover {{ background: #ff4b4b; border-color: #ffffff; transform: scale(1.15); }}
+        .delete-btn:hover {{ background: #ff4b4b; border-color: #fff; transform: scale(1.1); color: white; }}
     </style></head>
     <body>
         <div class="img-container" id="{dz_id}">
-            <div class="delete-btn" onclick="deleteImage(event)" title="Xóa ảnh này">✖</div>
+            <div class="delete-btn" onclick="deleteImage(event)" title="Xóa ảnh này">✕</div>
             <img src="data:image/jpeg;base64,{img_b64}" />
             <div class="overlay-text">📷 Đổi ảnh (Nhấp / Kéo Thả)</div>
         </div>
@@ -150,25 +150,28 @@ def render_clickable_image(img_b64, caption, uploader_index):
         <script>
         const dz = document.getElementById('{dz_id}');
         
-        // Chức năng Xóa: Đi tìm cái nút X ẩn của Streamlit và click hộ
+        // HÀM XÓA ẢNH ĐÃ ĐƯỢC FIX
         function deleteImage(e) {{
-            e.stopPropagation(); // Ngăn không cho mở cửa sổ chọn file
+            e.stopPropagation(); // Chặn sự kiện click nhầm vào đổi ảnh
             try {{
                 const uploaders = window.parent.document.querySelectorAll('[data-testid="stFileUploader"]');
                 const targetUploader = uploaders[{uploader_index}];
                 if(targetUploader) {{
-                    const delBtn = targetUploader.querySelector('[data-testid="stUploadedFile"] button');
-                    if(delBtn) delBtn.click();
+                    // Tìm đúng nút X của Streamlit đang bị làm mờ (opacity: 0)
+                    const delBtn = targetUploader.querySelector('button[aria-label="Remove file"], [data-testid="stUploadedFile"] button');
+                    if(delBtn) {{
+                        delBtn.click();
+                    }}
                 }}
-            }} catch(err) {{}}
+            }} catch(err) {{ console.error(err); }}
         }}
         
-        // Kích hoạt Upload khi Nhấp
+        // Click để upload file mới đè lên
         dz.addEventListener('click', () => {{
             try {{ window.parent.document.querySelectorAll('input[type=file]')[{uploader_index}].click(); }} catch(e) {{}}
         }});
         
-        // Kích hoạt Upload khi Kéo-Thả
+        // Kéo thả file đè lên ảnh cũ
         dz.addEventListener('dragover', (e) => {{ e.preventDefault(); dz.classList.add('dragover'); }});
         dz.addEventListener('dragleave', (e) => {{ e.preventDefault(); dz.classList.remove('dragover'); }});
         dz.addEventListener('drop', (e) => {{
@@ -196,7 +199,7 @@ def render_prompt_card(title: str, text: str, box_id: str):
         .title-text {{ font-weight: 700; color: #38bdf8; font-size: 0.9rem; letter-spacing: 0.5px; text-transform: uppercase; }}
         .copy-btn {{ background-color: #28a745; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s; outline: none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }}
         .copy-btn:hover {{ background-color: #218838; transform: translateY(-1px); }}
-        .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 1.2rem; height: 260px; overflow-y: auto; font-family: monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; }}
+        .prompt-box {{ background-color: #1e1e24; border: 1px solid #363945; border-radius: 8px; padding: 1.2rem; height: 260px; overflow-y: auto; font-family: "Courier New", Courier, monospace; font-size: 0.95rem; line-height: 1.6; color: #7dd3fc; white-space: pre-wrap; word-break: break-word; }}
         .prompt-box::-webkit-scrollbar {{ width: 6px; }}
         .prompt-box::-webkit-scrollbar-track {{ background: #1e1e24; border-radius: 8px; }}
         .prompt-box::-webkit-scrollbar-thumb {{ background: #484c5a; border-radius: 8px; }}
@@ -237,18 +240,24 @@ button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !i
 button[kind="primary"]:hover { background-color: #218838 !important; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(40,167,69,0.3); }
 div[data-testid="stSelectbox"] label { font-size: 0.85rem !important; font-weight: 600 !important; color: #a0a0a0 !important;}
 
-/* ================= ẨN HOÀN TOÀN KHUNG TẢI ẢNH KHI ĐÃ CÓ ẢNH ================= */
-
-/* 1. Ẩn cục báo tên file và dung lượng */
-[data-testid="stFileUploader"] section { 
-    display: none !important; 
+/* ================= ẨN THÔNG MINH KHUNG TẢI ẢNH ================= */
+/* Khi file uploader đã ngậm file, ẩn hoàn toàn khu vực Kéo Thả (Dropzone) mặc định */
+[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) [data-testid="stFileUploadDropzone"] {
+    display: none !important;
 }
 
-/* 2. Ẩn khung đứt nét kéo thả mặc định khi file uploader đã ngậm file */
-[data-testid="stFileUploader"]:has([data-testid="stUploadedFile"]) [data-testid="stFileUploadDropzone"] { 
-    display: none !important; 
+/* Biến Cục thông tin File thành vô hình để nhường chỗ cho ảnh xem trước, NHƯNG VẪN NHẬN ĐƯỢC CLICK TỪ JS */
+[data-testid="stUploadedFile"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    pointer-events: auto !important; 
+    z-index: -100 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -350,27 +359,28 @@ def process_gemini_analysis_bilingual(
         tag_requirement = "CRITICAL: You MUST explicitly include the exact text tags '@ảnh phác thảo' (for the first input image) and '@ảnh tham chiếu' (for the second input image) naturally within BOTH the English and Vietnamese paragraphs. DO NOT translate these tags."
         if only_light_ref:
             ref_instruction = """
-            REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY):
+            REFERENCE IMAGE INSTRUCTION (LIGHTING ONLY FROM REF):
             Analyze the second provided image (Reference Image). Extract ONLY its lighting scenario, mood, and atmosphere.
             STRICTLY PRESERVE the geometric structure, material textures, and colors from the first image (Sketch Image).
-            - English requirement: Explicitly use the tags "@ảnh phác thảo" for geometry/materials and "@ảnh tham chiếu" for lighting. Example: "The structure exactly matches @ảnh phác thảo, while the lighting mood follows @ảnh tham chiếu."
+            - English requirement: Explicitly use the tags "@ảnh phác thảo" for geometry/materials and "@ảnh tham chiếu" for lighting within the English text. Example: "The structure and materials exactly match @ảnh phác thảo, while the lighting mood strictly follows @ảnh tham chiếu."
             """
         else:
             ref_instruction = """
             REFERENCE IMAGE INSTRUCTION (FULL BLEND):
-            Analyze the second provided image. Extract its environmental context, lighting, and material/color palette. Apply these styles seamlessly onto the structural geometry of the first image.
-            - English requirement: Explicitly use BOTH tags "@ảnh phác thảo" and "@ảnh tham chiếu" naturally. Example: "The geometric structure follows @ảnh phác thảo, inspired by the style and lighting of @ảnh tham chiếu."
+            Analyze the second provided image (Reference Image). Extract its surrounding environmental context, lighting scenario, and primary material/color palette.
+            Apply these extracted styles seamlessly onto the structural geometry of the first image (Sketch Image).
+            - English requirement: Explicitly use BOTH tags "@ảnh phác thảo" and "@ảnh tham chiếu" naturally within the English text. Example: "The geometric structure follows @ảnh phác thảo, heavily inspired by the style, materials, and lighting of @ảnh tham chiếu."
             """
 
     system_instruction = f"""
-    You are an expert architectural prompt engineer for GOOGLE LABS FLOW (Imagen model).
+    You are an expert architectural prompt engineer specializing in GOOGLE LABS FLOW (ImageFX / Imagen model).
     Analyze the {domain} images and write a highly detailed, natural English description, then translate it into Vietnamese.
 
-    CRITICAL INSTRUCTIONS:
-    1. AUTOMATIC CAMERA ANGLE: Carefully analyze the first image (Sketch) to determine the exact camera angle (frontal flat elevation, 3/4 perspective, eye-level wide angle). Incorporate this perspective into the description.
+    CRITICAL INSTRUCTIONS FOR AI:
+    1. AUTOMATIC CAMERA ANGLE: Carefully analyze the first image (Sketch) to determine the exact camera angle and perspective (e.g., strictly frontal flat elevation, 3/4 architectural perspective, bird's-eye view, eye-level wide angle). Incorporate this perspective into the description.
     2. OVERRIDE RULE: If user provided extra notes, prioritize the user's note over the image details.
     {ref_instruction}
-    3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags or render engine names. DO NOT bold the @ tags.
+    3. FORMAT RULES: Write strictly in clear natural sentences. DO NOT use Midjourney tags (--ar, --v), resolution buzzwords, or render engine names. DO NOT bold or format the tags (@ảnh phác thảo, @ảnh tham chiếu).
 
     OUTPUT STRUCTURE REQUIREMENT:
     Return EXACTLY 2 sections separated by `===LANG_SPLIT===`:
@@ -378,11 +388,17 @@ def process_gemini_analysis_bilingual(
     ===LANG_SPLIT===
     <Vietnamese Paragraph>
     
-    The English paragraph MUST flow naturally combining: Subject/Style, Materials/Colors, The AUTO-DETECTED Camera Angle, Lighting: "{clean_light}", Environment: "{clean_context}", and Camera details: "Shot on Hasselblad H6D-100c. {film_instruction}"
+    The English paragraph MUST flow naturally combining:
+    - Subject/Style
+    - Materials/Colors (Adhering to the Reference Image Instructions)
+    - The AUTO-DETECTED Camera Angle
+    - Lighting: "{clean_light}" (Blended with specific rules above if any)
+    - Environment: "{clean_context}"
+    - Camera details: "Shot on Hasselblad H6D-100c. {film_instruction}"
     
     {tag_requirement}
-    Make sure the Vietnamese paragraph is a precise translation and explicitly keeps the required tags ("@ảnh phác thảo", "@ảnh tham chiếu") un-translated.
-    Do not include the < > brackets. Just output the plain text paragraphs.
+    Make sure the Vietnamese paragraph is a precise and natural translation of the English prompt and explicitly keeps the required tags ("@ảnh phác thảo", "@ảnh tham chiếu") un-translated.
+    Do not include the < > brackets or any other labels. Just output the plain text paragraphs.
     """
 
     content_inputs = [system_instruction, sketch_img]
@@ -396,8 +412,8 @@ def process_gemini_analysis_bilingual(
             parts = res.split("===LANG_SPLIT===")
             return clean_prompt_text(parts[0]), clean_prompt_text(parts[1]) if len(parts)>1 else ""
         return clean_prompt_text(res), "⚠️ AI không phân tách được tiếng Việt."
-    except Exception as e: return f"Lỗi gọi API: {str(e)}", ""
-
+    except Exception as e:
+        return f"Lỗi gọi API: {str(e)}", ""
 
 # ==================== GIAO DIỆN CHÍNH ====================
 tab_ext, tab_int = st.tabs(["🏛️ NGOẠI THẤT", "🛋️ NỘI THẤT"])

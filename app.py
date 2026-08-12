@@ -9,7 +9,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # Cấu hình trang Streamlit
-st.set_page_config(page_title="KATO AI - Vision Prompt Generator (Google Labs Edition)", layout="wide")
+st.set_page_config(page_title="KATO AI - Vision Prompt Generator", layout="wide")
 
 # Khởi tạo session_state cho 4 ô kết quả Ngoại thất và Nội thất
 for key in ["ext_box1", "ext_box2", "ext_box3", "ext_box4", "int_box1", "int_box2", "int_box3", "int_box4"]:
@@ -146,21 +146,34 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     overflow-x: hidden !important;
     overflow-y: auto !important;
 }
-div[data-testid="stHeader"] { display: none !important; }
+
+div[data-testid="stHeader"], header[data-testid="stHeader"] {
+    display: flex !important;
+    background: transparent !important;
+    z-index: 1000 !important;
+    pointer-events: none !important;
+    height: 2.8rem !important;
+}
+
 section[data-testid="stSidebar"] { display: none !important; }
 
 .block-container {
-    padding-top: 1.5rem !important;
+    padding-top: 2.8rem !important;
     padding-bottom: 1.0rem !important;
     padding-left: 0.8rem !important;
     padding-right: 0.8rem !important;
     max-width: 100% !important;
 }
 
+div[data-baseweb="tab-list"] {
+    z-index: 999999 !important;
+    position: relative !important;
+}
 button[data-baseweb="tab"] {
     font-size: 1.0rem !important;
     font-weight: 700 !important;
     padding: 0.4rem 1.5rem !important;
+    border-radius: 8px 8px 0 0 !important;
 }
 button[aria-selected="true"] {
     background-color: #262730 !important;
@@ -168,7 +181,7 @@ button[aria-selected="true"] {
     border-bottom: 3px solid #28a745 !important;
 }
 
-.custom-header-title { font-size: 1.2rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; }
+.custom-header-title { white-space: nowrap !important; font-size: 1.2rem !important; font-weight: 700 !important; color: #ffffff !important; margin: 0 !important; line-height: 32px !important; }
 
 div[data-testid="stTextArea"] textarea {
     background-color: #1e1e24 !important;
@@ -179,7 +192,7 @@ div[data-testid="stTextArea"] textarea {
     border-radius: 6px !important;
 }
 
-button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; font-weight: 600 !important; }
+button[kind="primary"] { background-color: #28a745 !important; color: #ffffff !important; border: none !important; height: 38px !important; border-radius: 6px !important; font-weight: 600 !important; font-size: 0.88rem !important; }
 button[kind="primary"]:hover { background-color: #218838 !important; }
 </style>
 """,
@@ -244,7 +257,7 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI (TÁCH 4 BỐC PROMPT TIẾNG ANH)
+# HÀM XỬ LÝ GỌI API GEMINI (SỬA LỖI MODEL NAME VÀ TÁCH 4 BỐC PROMPT TIẾNG ANH)
 def process_gemini_analysis_split(
     api_key,
     selected_model,
@@ -255,7 +268,13 @@ def process_gemini_analysis_split(
     is_interior=False,
 ):
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(selected_model)
+    
+    # Chuẩn hóa tên model để tránh lỗi 404
+    model_name = selected_model
+    if not model_name.startswith("models/"):
+        model_name = f"models/{model_name}"
+
+    model = genai.GenerativeModel(model_name)
 
     domain = "INTERIOR ARCHITECTURE" if is_interior else "EXTERIOR ARCHITECTURE"
 
@@ -292,7 +311,6 @@ def process_gemini_analysis_split(
         parts = result_text.split("===SECTION_SPLIT===")
         return [clean_prompt_text(p) for p in parts[:4]]
     else:
-        # Fallback phân tách theo câu nếu AI thiếu cờ phân cách
         sentences = [clean_prompt_text(s) for s in result_text.split(".") if s.strip()]
         while len(sentences) < 4:
             sentences.append("")
@@ -312,17 +330,16 @@ with tab_ext:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Ngoại thất)", expanded=True):
             user_api_key_ext = st.text_input("Gemini API Key:", type="password", key="api_key_ext_input")
             api_key_ext = user_api_key_ext.strip() if user_api_key_ext.strip() else secret_api_key
-            selected_model_ext = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"], key="model_ext")
+            # Cập nhật danh sách model chuẩn tránh lỗi 404
+            selected_model_ext = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_ext")
             light_ext = st.selectbox("Kịch bản ánh sáng:", lighting_ext_options, index=0, key="light_ext")
 
     with col_main_e:
         st.markdown('<p class="custom-header-title">Kết quả Prompt Tách 4 Ô (Tối ưu cho ImageFX)</p>', unsafe_allow_html=True)
         
-        # 4 ô Textarea chỉnh sửa riêng biệt
         b1_ext = st.text_area("1. Phong cách & Không gian (Box 1):", value=st.session_state.ext_box1, height=65, key="box1_ext")
         b2_ext = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", value=st.session_state.ext_box2, height=85, key="box2_ext")
         
-        # Thẻ Preset chọn nhanh vật liệu bổ sung cho Box 2 Ngoại thất
         st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
         tag_cols_e = st.columns(4)
         if tag_cols_e[0].button("+ Gỗ ốp mặt tiền", key="tag_e1"):
@@ -341,7 +358,6 @@ with tab_ext:
         b3_ext = st.text_area("3. Ánh sáng & Bối cảnh (Box 3):", value=st.session_state.ext_box3, height=65, key="box3_ext")
         b4_ext = st.text_area("4. Thông số Nhiếp ảnh & Chất lượng (Box 4):", value=st.session_state.ext_box4, height=65, key="box4_ext")
 
-        # Nút Ghép chuỗi & Sao chép prompt hoàn chỉnh
         full_ext_prompt = f"{b1_ext} {b2_ext} {b3_ext} {b4_ext}".strip()
         if st.button("📋 SAO CHÉP PROMPT HOÀN CHỈNH (Nối 4 ô)", type="primary", use_container_width=True, key="copy_ext"):
             st.write("Đã sẵn sàng dán vào Google Labs Flow:")
@@ -394,7 +410,7 @@ with tab_int:
         with st.expander("⚙️ Cấu hình API & Cài đặt (Nội thất)", expanded=True):
             user_api_key_int = st.text_input("Gemini API Key:", type="password", key="api_key_int_input")
             api_key_int = user_api_key_int.strip() if user_api_key_int.strip() else secret_api_key
-            selected_model_int = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"], key="model_int")
+            selected_model_int = st.selectbox("Model AI:", ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"], key="model_int")
             light_int = st.selectbox("Kịch bản ánh sáng Nội thất:", lighting_int_options, index=0, key="light_int")
 
     with col_main_i:
@@ -403,7 +419,6 @@ with tab_int:
         b1_int = st.text_area("1. Phong cách & Không gian (Box 1):", value=st.session_state.int_box1, height=65, key="box1_int")
         b2_int = st.text_area("2. Chi tiết Vật liệu & Màu sắc (Box 2 - Dễ sửa nhất):", value=st.session_state.int_box2, height=85, key="box2_int")
         
-        # Thẻ Preset chọn nhanh vật liệu bổ sung cho Box 2 Nội thất
         st.caption("✨ **Thẻ chọn nhanh vật liệu (Bấm để chèn vào Box 2):**")
         tag_cols_i = st.columns(4)
         if tag_cols_i[0].button("+ Trần sơn trắng", key="tag_i1"):

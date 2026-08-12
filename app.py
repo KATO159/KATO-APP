@@ -240,7 +240,7 @@ lighting_int_options = [
 ]
 
 
-# HÀM XỬ LÝ GỌI API GEMINI (AUTO-MAPPING FIX LỖI 404)
+# HÀM XỬ LÝ GỌI API GEMINI (SỬA LỖI 404 - DÙNG ĐÚNG TÊN GỐC CỦA MODEL)
 def process_gemini_analysis_split(
     api_key,
     selected_model_display,
@@ -252,15 +252,8 @@ def process_gemini_analysis_split(
 ):
     genai.configure(api_key=api_key)
     
-    # 🔴 TỰ ĐỘNG THÊM HẬU TỐ "-latest" ĐỂ API GOOGLE CHẤP NHẬN 100%
-    model_mapping = {
-        "gemini-1.5-flash": "gemini-1.5-flash-latest",
-        "gemini-1.5-pro": "gemini-1.5-pro-latest",
-        "gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
-    }
-    
-    real_api_model_name = model_mapping.get(selected_model_display, "gemini-1.5-flash-latest")
-    model_name = f"models/{real_api_model_name}"
+    # Truyền đúng tên model lấy từ dropdown, không thêm bớt hậu tố
+    model_name = f"models/{selected_model_display}"
 
     model = genai.GenerativeModel(model_name)
 

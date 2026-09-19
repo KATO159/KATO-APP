@@ -1,0 +1,22 @@
+# Cơ sở dữ liệu cục bộ của ứng dụng quản lý thuê đồ
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Hệ điều hành / trình soạn thảo
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/secrets.toml

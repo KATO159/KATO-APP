@@ -1,3 +1,6 @@
-streamlit
+# Dùng chung cho cả hai ứng dụng trong kho mã
+streamlit>=1.49          # cần cho st.pills và tham số width="stretch"
+
+# Riêng cho app.py - KATO AI Vision Prompt Generator
 google-generativeai
 pillow

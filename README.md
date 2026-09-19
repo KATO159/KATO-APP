@@ -15,7 +15,15 @@ Dành cho cửa hàng cho thuê áo dài, váy cưới, vest, phụ kiện, thi�
 Giao diện tiếng Việt, tối ưu cho cả điện thoại lẫn máy tính, dữ liệu lưu trong một
 tệp SQLite duy nhất nên không cần cài đặt máy chủ cơ sở dữ liệu.
 
-### Cài đặt và chạy
+### Cách chạy nhanh nhất trên Windows
+
+Tải tệp `KHOI_DONG.bat` về thư mục bạn muốn cài rồi **bấm đúp chuột**. Tệp này tự
+kiểm tra Python, tự tải mã nguồn, tự cài thư viện và tự mở ứng dụng — không cần gõ
+lệnh nào. Những lần sau cũng bấm đúp tệp đó để mở ứng dụng.
+
+Nếu máy chưa có Python hoặc Git, tệp sẽ dừng lại và chỉ rõ cần tải ở đâu.
+
+### Cài đặt thủ công (Windows / macOS / Linux)
 
 ```bash
 pip install -r requirements.txt
